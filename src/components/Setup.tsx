@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { makeCard } from '../engine/cards';
+import { SUITS, makeCard } from '../engine/cards';
 import { GameConfig } from '../engine/game';
 import { CardView } from './Card';
 
-const PREVIEW = [makeCard('denari', 1), makeCard('coppe', 10), makeCard('spade', 3), makeCard('bastoni', 9)];
+const PREVIEW = SUITS.map((suit) => makeCard(suit, 1));
 
 export function Setup({ onStart }: { onStart: (config: GameConfig) => void }) {
   const [players, setPlayers] = useState<2 | 4>(4);
@@ -30,10 +30,10 @@ export function Setup({ onStart }: { onStart: (config: GameConfig) => void }) {
         <fieldset>
           <legend>Players</legend>
           <label>
-            <input type="radio" checked={players === 4} onChange={() => setPlayers(4)} /> 4 players — you and Giulia vs two bots
+            <input type="radio" name="players" checked={players === 4} onChange={() => setPlayers(4)} /> 4 players — you and Giulia vs two bots
           </label>
           <label>
-            <input type="radio" checked={players === 2} onChange={() => setPlayers(2)} /> 2 players — head to head, drawing from the deck
+            <input type="radio" name="players" checked={players === 2} onChange={() => setPlayers(2)} /> 2 players — head to head, drawing from the deck
           </label>
         </fieldset>
 
@@ -41,7 +41,7 @@ export function Setup({ onStart }: { onStart: (config: GameConfig) => void }) {
           <legend>Play to</legend>
           {[21, 31, 41].map((t) => (
             <label key={t} className="inline">
-              <input type="radio" checked={targetScore === t} onChange={() => setTarget(t)} /> {t}
+              <input type="radio" name="target" checked={targetScore === t} onChange={() => setTarget(t)} /> {t}
             </label>
           ))}
         </fieldset>

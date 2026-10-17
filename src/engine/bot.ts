@@ -69,28 +69,45 @@ function chooseLead(s: GameState, seat: number, unseen: Card[]): Card {
   );
   if (opener) return opener;
 
-  // Answer the partner's most recent signal in a suit we still hold.
+  // Answer the partner's latest signal, unless we've already led since (and so answered it).
   if (s.config.players === 4) {
     const partner = (seat + 2) % 4;
     for (let i = s.tricks.length - 1; i >= 0; i--) {
       const lead = s.tricks[i].plays[0];
+      if (lead.seat === seat) break;
       if (lead.seat !== partner || !lead.signal || lead.signal === 'volo') continue;
       const inSuit = hand.filter((c) => c.suit === lead.card.suit);
       if (inSuit.length) return lead.signal === 'busso' ? maxBy(inSuit, strength) : minBy(inSuit, strength);
     }
   }
 
-  // Otherwise lead from the longest suit, never a lone Asso.
+  // Otherwise lead from the longest suit, never a lone Asso, and avoid handing points
+  // to an opponent known to hold a stronger card of that suit.
+  const known = knownOpponentCards(s, seat);
+  const gifts = (c: Card) => thirds(c) > 0 && known.some((k) => k.suit === c.suit && strength(k) > strength(c));
   const bySuit = new Map<Suit, Card[]>();
   for (const c of hand) bySuit.set(c.suit, [...(bySuit.get(c.suit) ?? []), c]);
-  const suits = [...bySuit.values()];
-  const candidates = suits.filter((cards) => !(cards.length === 1 && cards[0].rank === 1));
-  const suit = maxBy(candidates.length ? candidates : suits, (cards) => cards.length * 10 - cards.filter((c) => c.rank === 1).length);
-  const low = suit.filter((c) => c.rank >= 4 && c.rank <= 7);
+  const options = [...bySuit.values()]
+    .filter((cards) => !(cards.length === 1 && cards[0].rank === 1))
+    .map((cards) => ({ cards, lead: leadFromSuit(cards) }))
+    .filter((o) => !gifts(o.lead));
+  if (!options.length) return minBy(hand, keepValue);
+  return maxBy(options, (o) => o.cards.length * 10 - o.cards.filter((c) => c.rank === 1).length).lead;
+}
+
+function leadFromSuit(cards: Card[]): Card {
+  const low = cards.filter((c) => c.rank >= 4 && c.rank <= 7);
   if (low.length) return minBy(low, strength);
-  const three = suit.find((c) => c.rank === 3);
-  if (three) return three;
-  return minBy(suit, keepValue);
+  return cards.find((c) => c.rank === 3) ?? minBy(cards, keepValue);
+}
+
+/** In the 2-player game drawn cards are shown face up, so we know some of the opponent's hand. */
+function knownOpponentCards(s: GameState, seat: number): Card[] {
+  const played = new Set(s.tricks.flatMap((t) => t.plays.map((p) => p.card.id)));
+  for (const p of s.trick) played.add(p.card.id);
+  return s.events.flatMap((e) =>
+    e.type === 'draw' && teamOf(s.config, e.seat) !== teamOf(s.config, seat) && !played.has(e.card.id) ? [e.card] : [],
+  );
 }
 
 function chooseSignal(hand: Card[], led: Card, unseen: Card[]): Signal | undefined {
@@ -110,16 +127,16 @@ function chooseFollow(s: GameState, seat: number, legal: Card[], unseen: Card[])
   const last = trick.length === config.players - 1;
   const trickThirds = trick.reduce((sum, p) => sum + thirds(p.card), 0);
 
-  if (partnerWinning && (last || isMaster(winning.card, unseen))) return maxBy(legal, feedValue);
-
   const beats = (c: Card) => c.suit === leadSuit && strength(c) > strength(winning.card);
   const winners = legal.filter(beats);
 
-  // Partner knocked: take the trick with our best card if it can win.
+  // Partner knocked: take the trick with our best card, even over the partner's own card.
   const lead = trick[0];
-  if (lead.signal === 'busso' && teamOf(config, lead.seat) === myTeam && winners.length && !partnerWinning) {
+  if (lead.signal === 'busso' && teamOf(config, lead.seat) === myTeam && winners.length) {
     return maxBy(winners, strength);
   }
+
+  if (partnerWinning && (last || isMaster(winning.card, unseen))) return maxBy(legal, feedValue);
 
   if (winners.length && !partnerWinning) {
     const ace = winners.find((c) => c.rank === 1);

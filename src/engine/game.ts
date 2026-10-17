@@ -42,7 +42,7 @@ export type GameEvent =
   | { type: 'draw'; seat: number; card: Card }
   | { type: 'hand'; result: HandResult };
 
-export type Phase = 'playing' | 'trickComplete' | 'handOver' | 'gameOver';
+export type Phase = 'dealing' | 'playing' | 'trickComplete' | 'handOver' | 'gameOver';
 
 export interface GameState {
   config: GameConfig;
@@ -50,7 +50,10 @@ export interface GameState {
   handNumber: number;
   dealer: number;
   turn: number;
+  /** Each seat's full hand, decided at the deal; see `visibleHand` while dealing. */
   hands: Card[][];
+  /** Cards handed out so far in the 'dealing' phase, one at a time round-robin from the dealer's right. */
+  dealt: number;
   /** Undealt cards; only used in the 2-player game, where both players draw after each trick. */
   stock: Card[];
   trick: Play[];
@@ -67,6 +70,7 @@ export interface GameState {
 
 export type Rng = () => number;
 
+export const HAND_SIZE = 10;
 const LAST_TRICK_BONUS = 3; // thirds
 
 /** Seats go counterclockwise. With 4 players, partners sit opposite (seats 0+2 and 1+3). */
@@ -83,12 +87,13 @@ function deal(config: GameConfig, dealer: number, handNumber: number, scores: [n
   const deck = shuffle(newDeck(), rng);
   return {
     config,
-    phase: 'playing',
+    phase: 'dealing',
     handNumber,
     dealer,
     turn: (dealer + 1) % n,
-    hands: Array.from({ length: n }, (_, i) => deck.slice(i * 10, i * 10 + 10)),
-    stock: deck.slice(n * 10),
+    hands: Array.from({ length: n }, (_, i) => deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE)),
+    dealt: 0,
+    stock: deck.slice(n * HAND_SIZE),
     trick: [],
     tricks: [],
     declarations: [],
@@ -98,6 +103,35 @@ function deal(config: GameConfig, dealer: number, handNumber: number, scores: [n
     winner: null,
     events: [],
   };
+}
+
+/** Hands out the next card; play starts once every seat has HAND_SIZE cards. */
+export function dealNext(s: GameState): GameState {
+  if (s.phase !== 'dealing') throw new Error('Not dealing');
+  const dealt = s.dealt + 1;
+  return { ...s, dealt, phase: dealt === s.config.players * HAND_SIZE ? 'playing' : 'dealing' };
+}
+
+/** Deal step k gives seat (dealer + 1 + k) % n its card number floor(k / n). */
+function dealSeat(s: GameState, step: number): number {
+  return (s.dealer + 1 + step) % s.config.players;
+}
+
+/** The cards a seat holds so far: the full hand, or while dealing only those already handed out. */
+export function visibleHand(s: GameState, seat: number): Card[] {
+  if (s.phase !== 'dealing') return s.hands[seat];
+  const n = s.config.players;
+  const offset = (seat - s.dealer - 1 + n) % n;
+  return s.hands[seat].slice(0, Math.max(0, Math.ceil((s.dealt - offset) / n)));
+}
+
+/** Face-down pile on the table: cards still to be dealt, then the stock, top first. */
+export function deckCards(s: GameState): Card[] {
+  if (s.phase !== 'dealing') return s.stock;
+  const n = s.config.players;
+  const undealt = [];
+  for (let k = s.dealt; k < n * HAND_SIZE; k++) undealt.push(s.hands[dealSeat(s, k)][Math.floor(k / n)]);
+  return [...undealt, ...s.stock];
 }
 
 /** Accusi must be declared before the player's first card of the hand. */

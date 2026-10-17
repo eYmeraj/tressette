@@ -7,6 +7,7 @@
   --team-0: #f4cf5a;
   --team-1: #e9867b;
   --card-w: clamp(54px, 8vw, 92px);
+  --card-h: calc(var(--card-w) * 545 / 300);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--cream);
   background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%) fixed;
@@ -31,30 +32,42 @@ button:not(.card):hover { filter: brightness(1.1); }
 .card {
   display: block;
   width: var(--card-w);
-  aspect-ratio: 100 / 160;
+  aspect-ratio: 300 / 545;
   padding: 0;
   border: 0;
-  background: none;
-  border-radius: 7%;
+  background: #fff;
+  border-radius: calc(var(--card-w) * 0.08);
+  overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
 }
-.card-svg { display: block; width: 100%; height: 100%; }
+.card-face { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+.card-back {
+  width: 100%;
+  height: 100%;
+  border: calc(var(--card-w) * 0.05) solid var(--cream);
+  border-radius: inherit;
+  background-color: #8f1d1d;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(227, 165, 28, 0.6) 0 1.5px, transparent 1.5px 8px),
+    repeating-linear-gradient(-45deg, rgba(227, 165, 28, 0.6) 0 1.5px, transparent 1.5px 8px);
+  box-shadow: inset 0 0 0 1.5px var(--gold);
+}
 .card.small { width: calc(var(--card-w) * 0.5); }
 .card.mini { width: calc(var(--card-w) * 0.55); }
 button.card { cursor: default; }
 button.card.playable { cursor: pointer; }
-button.card.playable:hover, button.card.playable:focus-visible { transform: translateY(-14px); outline: none; }
+button.card.playable:hover, button.card.playable:focus-visible { outline: none; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
 .card.dimmed { filter: brightness(0.55) saturate(0.6); }
 
 /* ---------- setup ---------- */
 .setup { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
 .setup h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--gold); letter-spacing: 0.05em; }
 .setup-cards { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
-.setup-cards .card:nth-child(1) { transform: rotate(-8deg); }
-.setup-cards .card:nth-child(2) { transform: rotate(-3deg) translateY(-6px); }
-.setup-cards .card:nth-child(3) { transform: rotate(3deg) translateY(-6px); }
-.setup-cards .card:nth-child(4) { transform: rotate(8deg); }
+.setup-cards .card:nth-child(1) { rotate: -8deg; }
+.setup-cards .card:nth-child(2) { rotate: -3deg; translate: 0 -6px; }
+.setup-cards .card:nth-child(3) { rotate: 3deg; translate: 0 -6px; }
+.setup-cards .card:nth-child(4) { rotate: 8deg; }
 .setup-form { display: grid; gap: 1rem; text-align: left; }
 .setup-form fieldset { border: 1px solid rgba(251, 246, 232, 0.25); border-radius: 8px; padding: 0.75rem 1rem; }
 .setup-form legend { color: var(--gold); padding: 0 0.4em; }
@@ -91,17 +104,24 @@ button.card.playable:hover, button.card.playable:focus-visible { transform: tran
 .backs { display: flex; }
 .backs .card + .card { margin-left: calc(var(--card-w) * -0.32); }
 .backs.vertical { flex-direction: column; }
-.backs.vertical .card + .card { margin-left: 0; margin-top: calc(var(--card-w) * -0.62); }
+.backs.vertical .card + .card { margin-left: 0; margin-top: calc(var(--card-w) * -0.72); }
 
-.trick { grid-area: center; position: relative; min-height: calc(var(--card-w) * 3.4); }
-.played { position: absolute; left: 50%; top: 50%; transition: transform 0.3s ease; }
-.played-bottom { transform: translate(-50%, -15%); }
-.played-top { transform: translate(-50%, -85%); }
-.played-left { transform: translate(-125%, -50%) rotate(-6deg); }
-.played-right { transform: translate(25%, -50%) rotate(6deg); }
+/* Positioning uses the individual translate/rotate properties: Framer Motion owns `transform`. */
+.center { grid-area: center; position: relative; min-height: calc(var(--card-h) * 2.1); }
+.trick { position: absolute; inset: 0; }
+.played { position: absolute; left: 50%; top: 50%; }
+.played-bottom { translate: -50% -12%; }
+.played-top { translate: -50% -88%; }
+.played-left { translate: -128% -50%; }
+.played-right { translate: 28% -50%; }
+
+.deck { position: absolute; left: 6%; top: 50%; translate: 0 -50%; display: flex; flex-direction: column; align-items: center; gap: 1.3rem; }
+.deck-stack { position: relative; }
+.deck-top { position: absolute; top: 0; left: 0; }
+.deck-count { background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .played.winner .card { box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
 .signal-badge {
-  position: absolute; left: 50%; bottom: -0.8em; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: -0.8em; translate: -50% 0;
   background: var(--gold); color: var(--ink); font-size: 0.75rem; font-weight: 700;
   padding: 0.1em 0.6em; border-radius: 999px; white-space: nowrap;
 }

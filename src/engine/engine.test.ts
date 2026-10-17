@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard, newDeck, thirds } from './cards';
 import { findAccusi, legalCards, trickWinnerIndex } from './rules';
-import { GameConfig, GameState, collectTrick, declare, legalMoves, newGame, nextHand, playCard } from './game';
+import {
+  GameConfig, GameState, collectTrick, dealNext, deckCards, declare, legalMoves, newGame, nextHand, playCard, visibleHand,
+} from './game';
 import { chooseMove } from './bot';
 
 /** Deterministic PRNG so failures are reproducible. */
@@ -50,13 +52,33 @@ describe('rules', () => {
   });
 });
 
+describe('dealing', () => {
+  it.each([2, 4] as const)('hands out cards round-robin from the deck with %i players', (players) => {
+    let s = newGame({ players, targetScore: 31, accusi: false, signals: false }, mulberry32(7));
+    const total = players * 10;
+    expect(deckCards(s)).toHaveLength(40);
+    expect(legalMoves(s, s.turn)).toEqual([]);
+    for (let k = 1; k <= total; k++) {
+      const top = deckCards(s)[0];
+      const seat = (s.dealer + k) % players;
+      s = dealNext(s);
+      expect(visibleHand(s, seat).at(-1)).toEqual(top);
+      expect(deckCards(s)).toHaveLength(40 - k);
+    }
+    expect(s.phase).toBe('playing');
+    for (let seat = 0; seat < players; seat++) expect(visibleHand(s, seat)).toHaveLength(10);
+  });
+});
+
 function playOut(config: GameConfig, seed: number): GameState[] {
   const rng = mulberry32(seed);
   let s = newGame(config, rng);
   const finished: GameState[] = [];
   for (let steps = 0; steps < 10_000; steps++) {
     if (s.phase === 'gameOver') return [...finished, s];
-    if (s.phase === 'handOver') {
+    if (s.phase === 'dealing') {
+      s = dealNext(s);
+    } else if (s.phase === 'handOver') {
       finished.push(s);
       s = nextHand(s, rng);
     } else if (s.phase === 'trickComplete') {
@@ -88,5 +110,23 @@ describe.each([
       expect(last.phase).toBe('gameOver');
       expect(Math.max(...last.scores)).toBeGreaterThanOrEqual(31);
     }
+  });
+});
+
+describe('bot signals', () => {
+  it('takes the trick with its best card when the partner knocks, even over the partner', () => {
+    const base = newGame({ players: 4, targetScore: 31, accusi: false, signals: true }, mulberry32(3));
+    const s: GameState = {
+      ...base,
+      phase: 'playing',
+      dealt: 40,
+      turn: 0,
+      hands: [[makeCard('coppe', 3), makeCard('coppe', 5)], [], [], []],
+      trick: [
+        { seat: 2, card: makeCard('coppe', 2), signal: 'busso' },
+        { seat: 3, card: makeCard('coppe', 4) },
+      ],
+    };
+    expect(chooseMove(s, 0).cardId).toBe('3-coppe');
   });
 });
