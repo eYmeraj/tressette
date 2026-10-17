@@ -22,6 +22,10 @@ export function formatThirds(t: number): string {
   return `${whole || ''}${frac}`;
 }
 
+function points(t: number): string {
+  return `${formatThirds(t)} ${t === 3 ? 'pt' : 'pts'}`;
+}
+
 export function describeEvent(e: GameEvent, names: string[], teams: [string, string]): string {
   switch (e.type) {
     case 'declare':
@@ -29,7 +33,7 @@ export function describeEvent(e: GameEvent, names: string[], teams: [string, str
     case 'signal':
       return `${names[e.seat]} signalled ${SIGNALS[e.signal].label} in ${SUIT_NAMES[e.suit]}`;
     case 'trick':
-      return `${names[e.winner]} took the trick (${formatThirds(e.thirds)} pts)`;
+      return `${names[e.winner]} took the trick (${points(e.thirds)})`;
     case 'draw':
       return `${names[e.seat]} drew the ${cardName(e.card)}`;
     case 'hand':

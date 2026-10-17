@@ -6,7 +6,8 @@
   --ink: #2b2118;
   --team-0: #f4cf5a;
   --team-1: #e9867b;
-  --card-w: clamp(54px, 8vw, 92px);
+  /* Sized by the window's width and height so the whole table fits without scrolling. */
+  --card-w: clamp(48px, min(8vw, 10.5vh), 92px);
   --card-h: calc(var(--card-w) * 545 / 300);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--cream);
@@ -107,13 +108,13 @@ button.card.playable:hover, button.card.playable:focus-visible { outline: none; 
 .backs.vertical .card + .card { margin-left: 0; margin-top: calc(var(--card-w) * -0.72); }
 
 /* Positioning uses the individual translate/rotate properties: Framer Motion owns `transform`. */
-.center { grid-area: center; position: relative; min-height: calc(var(--card-h) * 2.1); }
+.center { grid-area: center; position: relative; min-height: calc(var(--card-h) * 2.25); }
 .trick { position: absolute; inset: 0; }
 .played { position: absolute; left: 50%; top: 50%; }
-.played-bottom { translate: -50% -12%; }
-.played-top { translate: -50% -88%; }
-.played-left { translate: -128% -50%; }
-.played-right { translate: 28% -50%; }
+.played-bottom { translate: -50% 6%; }
+.played-top { translate: -50% -106%; }
+.played-left { translate: -165% -50%; }
+.played-right { translate: 65% -50%; }
 
 .deck { position: absolute; left: 6%; top: 50%; translate: 0 -50%; display: flex; flex-direction: column; align-items: center; gap: 1.3rem; }
 .deck-stack { position: relative; }
