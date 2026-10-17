@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { GameConfig } from './engine/game';
-import { PiacentineDefs } from './components/Card';
+import { preloadCardImages } from './components/Card';
 import { Setup } from './components/Setup';
 import { GameScreen } from './components/GameScreen';
 
 export function App() {
   const [config, setConfig] = useState<GameConfig | null>(null);
+  useEffect(preloadCardImages, []);
   return (
-    <>
-      <PiacentineDefs />
+    <MotionConfig reducedMotion="user">
       {config ? <GameScreen config={config} onQuit={() => setConfig(null)} /> : <Setup onStart={setConfig} />}
-    </>
+    </MotionConfig>
   );
 }
