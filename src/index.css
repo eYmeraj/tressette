@@ -75,6 +75,12 @@ button.card.playable:hover, button.card.playable:focus-visible { outline: none; 
 .setup-form label.inline { display: inline-block; margin-right: 1.25rem; }
 .setup-form label.disabled { opacity: 0.5; }
 .setup-form .primary { justify-self: center; font-size: 1.15rem; padding: 0.6em 2.5em; }
+.art-picker { display: flex; justify-content: center; gap: 1.5rem; padding: 0.25rem 0; }
+.setup-form .art-option, .art-option { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; }
+.art-option input { position: absolute; opacity: 0; pointer-events: none; }
+.art-option .card { width: 72px; transition: box-shadow 0.15s ease, translate 0.15s ease; }
+.art-option.selected .card { box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0, 0, 0, 0.45); translate: 0 -3px; }
+.art-option:has(input:focus-visible) .card { outline: 2px solid var(--cream); outline-offset: 3px; }
 .rules { margin-top: 1.5rem; text-align: left; background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 0.75rem 1rem; }
 .rules summary { cursor: pointer; color: var(--gold); }
 .rules li { margin: 0.35rem 0; line-height: 1.4; }
@@ -147,6 +153,17 @@ button.card.playable:hover, button.card.playable:focus-visible { outline: none; 
 .score-row.team-1 span::before { color: var(--team-1); }
 .score-row strong { font-size: 1.25rem; }
 .score-meta { margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7; }
+.hud-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+.last-hand { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; opacity: 0.75; transition: opacity 0.15s ease; }
+.last-hand:hover { opacity: 1; }
+.last-hand span { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; }
+.mini-cards { display: flex; }
+.card.mini { width: clamp(26px, calc(var(--card-w) * 0.4), 36px); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+.card.mini + .card.mini { margin-left: -4px; }
+.card.mini.winner { box-shadow: 0 0 0 2px var(--gold); }
+/* A drawn card shown to the opponent (2-player game). */
+.card.shown { box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(0, 0, 0, 0.45); }
+.backs .card.shown { translate: 0 6px; z-index: 1; }
 button.icon-button { display: grid; place-items: center; padding: 0.45rem; border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
 
 /* ---------- modal ---------- */
@@ -159,7 +176,9 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
 .modal tr.total td { font-weight: 700; }
 .modal small { font-weight: 400; opacity: 0.7; }
 .modal.settings { min-width: min(320px, 100%); }
-.modal.settings p { margin: 0 0 1.25rem; opacity: 0.75; }
+.modal.settings p { margin: 0 0 1rem; opacity: 0.75; }
+.modal.settings h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.modal.settings .art-picker { margin-bottom: 1.5rem; }
 .modal-actions { display: flex; justify-content: center; gap: 0.75rem; }
 .modal button:not(.primary) { color: var(--ink); border-color: #c9bc9c; background: transparent; }
 .modal button.danger { color: #9b2c22; border-color: #9b2c22; }

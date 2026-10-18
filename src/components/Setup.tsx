@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { SUITS, makeCard } from '../engine/cards';
 import { GameConfig } from '../engine/game';
-import { CardView } from './Card';
+import { CardArt, CardView } from './Card';
+import { CardArtPicker } from './CardArtPicker';
 
 const PREVIEW = SUITS.map((suit) => makeCard(suit, 1));
 
-export function Setup({ onStart }: { onStart: (config: GameConfig) => void }) {
+export function Setup({
+  art,
+  onArtChange,
+  onStart,
+}: {
+  art: CardArt;
+  onArtChange: (art: CardArt) => void;
+  onStart: (config: GameConfig) => void;
+}) {
   const [players, setPlayers] = useState<2 | 4>(4);
   const [targetScore, setTarget] = useState(31);
   const [accusi, setAccusi] = useState(true);
@@ -61,6 +70,11 @@ export function Setup({ onStart }: { onStart: (config: GameConfig) => void }) {
             />{' '}
             Signals to partner (Busso, Volo, Striscio)
           </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Card style</legend>
+          <CardArtPicker value={art} onChange={onArtChange} />
         </fieldset>
 
         <button type="submit" className="primary">Deal</button>
