@@ -1,8 +1,8 @@
-import { Card } from '../cards';
+import { Card, thirds } from '../cards';
 import { GameState, Rng, collectAndDraw, teamOf } from '../game';
 import { SeatView, accusiFor, legalPlays, seatView } from '../view';
 import { classicMove, classicSignal } from './classic';
-import { solveEndgame } from './endgame';
+import { endgameScores } from './endgame';
 import { sampleDeal } from './sample';
 import { BotMove, applyMove } from './types';
 
@@ -30,34 +30,58 @@ function margin(s: GameState, team: number): number {
   return total(team) - total(1 - team);
 }
 
+/** Card thirds our team has already taken this hand, minus theirs. */
+function takenMargin(v: SeatView, team: number): number {
+  let m = 0;
+  for (const t of v.tricks) {
+    const pts = t.plays.reduce((sum, p) => sum + thirds(p.card), 0);
+    m += teamOf(v.config, t.winner) === team ? pts : -pts;
+  }
+  return m;
+}
+
 /**
- * Monte Carlo player: for each of `samples` random deals of the hidden cards consistent with what it has seen,
- * it tries every legal card, plays the hand out with the classic bot, and picks the card with the best average
- * margin. Signals and accusi follow the classic bot's judgement.
+ * How good each legal card is, as the thirds (with the last-trick bonus) our team should end the hand with
+ * minus theirs. Averaged over `samples` random deals of the hidden cards consistent with what this seat has seen,
+ * each played out by the classic bot, or exact once the 2-player stock is empty (with `endgame`).
  */
-export function makeStatsBot({ samples, endgame }: StatsOptions) {
+export function statsScores(v: SeatView, rng: Rng, { samples, endgame }: StatsOptions): { card: Card; score: number }[] {
+  const legal = legalPlays(v);
+  if (!legal.length) throw new Error(`Seat ${v.seat} cannot play now`);
+  const team = teamOf(v.config, v.seat);
+  if (endgame && v.config.players === 2 && v.stockSize === 0) {
+    const taken = takenMargin(v, team);
+    return endgameScores(v).map(({ card, score }) => ({ card, score: taken + score }));
+  }
+  const callAccusi = accusiFor(v).length > 0;
+  const leading = v.trick.length === 0;
+  const totals = new Array<number>(legal.length).fill(0);
+  for (let i = 0; i < samples; i++) {
+    const world = sampleDeal(v, rng);
+    legal.forEach((c, k) => {
+      const signal = leading ? classicSignal(v, c) : undefined;
+      const after = applyMove(world, v.seat, { cardId: c.id, signal, callAccusi });
+      totals[k] += margin(playOutHand(after), team);
+    });
+  }
+  return legal.map((card, k) => ({ card, score: totals[k] / samples }));
+}
+
+/** Plays `card` with the classic bot's signal and accusi judgement. */
+export function moveWith(v: SeatView, card: Card): BotMove {
+  return {
+    cardId: card.id,
+    signal: v.trick.length === 0 ? classicSignal(v, card) : undefined,
+    callAccusi: accusiFor(v).length > 0,
+  };
+}
+
+/** Monte Carlo player: plays the legal card with the best score from `statsScores`. */
+export function makeStatsBot(options: StatsOptions) {
   return (v: SeatView, rng: Rng): BotMove => {
     const legal = legalPlays(v);
-    if (!legal.length) throw new Error(`Seat ${v.seat} cannot play now`);
-    const callAccusi = accusiFor(v).length > 0;
-    const leading = v.trick.length === 0;
-
-    let card: Card;
-    if (legal.length === 1) card = legal[0];
-    else if (endgame && v.config.players === 2 && v.stockSize === 0) card = solveEndgame(v);
-    else {
-      const team = teamOf(v.config, v.seat);
-      const totals = new Array<number>(legal.length).fill(0);
-      for (let i = 0; i < samples; i++) {
-        const world = sampleDeal(v, rng);
-        legal.forEach((c, k) => {
-          const signal = leading ? classicSignal(v, c) : undefined;
-          const after = applyMove(world, v.seat, { cardId: c.id, signal, callAccusi });
-          totals[k] += margin(playOutHand(after), team);
-        });
-      }
-      card = legal[totals.indexOf(Math.max(...totals))];
-    }
-    return { cardId: card.id, signal: leading ? classicSignal(v, card) : undefined, callAccusi };
+    if (legal.length === 1) return moveWith(v, legal[0]);
+    const scored = statsScores(v, rng, options);
+    return moveWith(v, scored.reduce((best, x) => (x.score > best.score ? x : best)).card);
   };
 }

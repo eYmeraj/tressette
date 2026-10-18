@@ -6,7 +6,7 @@ import { SeatView, unseenCards } from '../view';
 const STOCK = -1;
 
 /** Suits each seat has shown it lacks: by not following the lead, or by signalling Volo on its last card. */
-function voids(v: SeatView): Set<Suit>[] {
+export function voids(v: SeatView): Set<Suit>[] {
   const out = Array.from({ length: v.config.players }, () => new Set<Suit>());
   for (const plays of [...v.tricks.map((t) => t.plays), v.trick]) {
     const lead = plays[0];
@@ -18,7 +18,7 @@ function voids(v: SeatView): Set<Suit>[] {
 }
 
 /** Cards known to be in another seat's hand: drawn face up (2-player) or shown in an accuso, not yet played. */
-function knownCards(v: SeatView, unseen: Set<string>): Map<string, number> {
+export function knownCards(v: SeatView, unseen: Set<string>): Map<string, number> {
   const known = new Map<string, number>();
   for (const e of v.events) {
     if (e.type === 'draw' && e.seat !== v.seat && unseen.has(e.card.id)) known.set(e.card.id, e.seat);

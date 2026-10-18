@@ -1,0 +1,6 @@
+[project]
+name = "tressette-ml"
+version = "0.1.0"
+description = "Trains the Tressette bot's network from self-play data"
+requires-python = ">=3.11"
+dependencies = ["numpy>=2", "torch>=2.4"]
