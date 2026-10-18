@@ -8,7 +8,7 @@ import {
 import { HUMAN, useGame } from '../useGame';
 import { clearSavedGame, saveGame } from '../savedGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
-import { AssoFlairContext, CardArt, CardView } from './Card';
+import { AssoFlairContext, CardArt, CardView, DRAW_SPRING } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
 import { CoffeeStain } from './CoffeeStain';
@@ -108,7 +108,7 @@ export function GameScreen({
 
           <div className="center">
             <Deck cards={deckCards(state)} />
-            <DrawReveal drawn={state.drawn} names={names} />
+            <DrawReveal drawn={state.drawn} names={names} positions={pos} />
             <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
           </div>
 
@@ -272,18 +272,28 @@ function lastDraws(s: GameState): Set<string> {
   return ids;
 }
 
-/** The cards just drawn in the 2-player game, face up beside the deck with who gets each, before they go to hand. */
-function DrawReveal({ drawn, names }: { drawn: GameState['drawn']; names: string[] }) {
-  if (!drawn.length) return null;
+/**
+ * The cards just drawn in the 2-player game, face up beside the deck before they go to hand: each one sits on
+ * the side of the player getting it (theirs towards the top, yours towards the bottom).
+ */
+function DrawReveal({
+  drawn,
+  names,
+  positions: pos,
+}: {
+  drawn: GameState['drawn'];
+  names: string[];
+  positions: Position[];
+}) {
   return (
-    <div className="draw-reveal" aria-live="polite">
+    <>
       {drawn.map(({ seat, card }) => (
-        <div key={card.id} className="draw-reveal-card">
+        <div key={card.id} className={`draw-reveal draw-reveal-${pos[seat]}`} aria-label={`${names[seat]} drew a card`}>
           <CardView card={card} layoutId={card.id} />
           <span>{names[seat]}</span>
         </div>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -316,6 +326,7 @@ function Opponent({
             card={c}
             faceDown={!drawn.has(c.id)}
             className={drawn.has(c.id) ? 'small shown' : 'small'}
+            transition={drawn.has(c.id) ? DRAW_SPRING : undefined}
           />
         ))}
       </div>

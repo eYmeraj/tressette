@@ -175,7 +175,20 @@ button.cookie {
 .setup-page { position: relative; min-height: 100vh; overflow: hidden; }
 .asso-toggle { display: block; margin-top: 1.25rem; font-size: 0.85rem; opacity: 0.85; text-align: left; cursor: pointer; }
 .setup { position: relative; max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
-.setup h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--gold); letter-spacing: 0.05em; }
+/* The title in a fine Garamond italic, with a thin gold rule and diamond beneath. */
+.setup h1 {
+  margin: 0 0 1rem; color: var(--gold);
+  font-family: 'Cormorant Garamond', Garamond, Georgia, serif; font-style: italic; font-weight: 500;
+  font-size: clamp(3rem, 11vw, 4.4rem); line-height: 1; letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.setup h1::after {
+  content: '✦'; display: block; width: 9rem; margin: 0.45rem auto 0;
+  font-size: 0.75rem; font-style: normal; letter-spacing: 0; line-height: 1; opacity: 0.85;
+  background:
+    linear-gradient(var(--gold), var(--gold)) left center / calc(50% - 0.9rem) 1px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) right center / calc(50% - 0.9rem) 1px no-repeat;
+}
 .setup-cards { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
 .setup-cards .card:nth-child(1) { rotate: -8deg; }
 .setup-cards .card:nth-child(2) { rotate: -3deg; translate: 0 -6px; }
@@ -255,11 +268,13 @@ button.cookie {
 .deck-top { position: absolute; top: 0; left: 0; }
 .deck-count { background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .draw-reveal {
-  position: absolute; left: calc(6% + var(--card-w) + 1.25rem); top: 50%; translate: 0 -50%;
-  display: flex; gap: 0.6rem; z-index: 1;
+  position: absolute; left: calc(6% + var(--card-w) + 1.25rem); top: 50%; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
 }
-.draw-reveal-card { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
-.draw-reveal-card span { font-size: 0.75rem; background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; white-space: nowrap; }
+/* Each drawn card waits on its taker's side of the deck: the opponent's above the middle, yours below. */
+.draw-reveal-top { translate: 0 calc(-100% - 0.5rem); flex-direction: column-reverse; }
+.draw-reveal-bottom { translate: 0 0.5rem; }
+.draw-reveal span { font-size: 0.75rem; background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; white-space: nowrap; }
 .played.winner .card { box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
 .signal-badge {
   position: absolute; left: 50%; bottom: -0.8em; translate: -50% 0;

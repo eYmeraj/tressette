@@ -1,6 +1,6 @@
 import { PointerEvent, useRef, useState } from 'react';
 import { Card } from '../engine/cards';
-import { CardView } from './Card';
+import { CardView, DRAW_SPRING } from './Card';
 
 /** How far above the hand a finger must be let go for the card to be played. */
 const PLAY_LIFT_PX = 40;
@@ -91,6 +91,7 @@ export function Hand({ cards, legal, myTurn, drawn, onPlay }: HandProps) {
             playable={playable(c.id)}
             dimmed={myTurn && !legal.has(c.id)}
             className={drawn.has(c.id) ? 'shown' : undefined}
+            transition={drawn.has(c.id) ? DRAW_SPRING : undefined}
           />
         </div>
       ))}
