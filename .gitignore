@@ -1,3 +1,7 @@
 node_modules
 dist
 .DS_Store
+ml/data
+ml/.venv
+ml/checkpoints
+__pycache__

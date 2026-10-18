@@ -6,11 +6,12 @@ const LAST_TRICK_BONUS = 3; // thirds
 /**
  * Perfect play once the 2-player stock is empty: every card the opponent holds is then known (the rest of the
  * deck), so the remaining tricks are a full-information game. Solves it exactly with memoised minimax over
- * which cards each side still holds, and returns the card that maximises our thirds minus theirs.
+ * which cards each side still holds, and scores each legal card by the thirds we then take minus theirs (over the
+ * remaining tricks only, last-trick bonus included).
  *
  * Hands are bitmasks over the (at most 20) cards still in hand, so the search is integer work only.
  */
-export function solveEndgame(v: SeatView): Card {
+export function endgameScores(v: SeatView): { card: Card; score: number }[] {
   const led = v.trick[0];
   // Their card already on the table (if we're replying) takes part in the first trick but is in no hand.
   const cards = [...v.hand, ...unseenCards(v), ...(led ? [led.card] : [])];
@@ -80,6 +81,10 @@ export function solveEndgame(v: SeatView): Card {
     return worst;
   };
 
-  const scored = legalPlays(v).map((c) => ({ c, score: score(c) }));
-  return scored.reduce((best, x) => (x.score > best.score ? x : best)).c;
+  return legalPlays(v).map((card) => ({ card, score: score(card) }));
+}
+
+/** The card that maximises our thirds minus theirs over the rest of the hand. */
+export function solveEndgame(v: SeatView): Card {
+  return endgameScores(v).reduce((best, x) => (x.score > best.score ? x : best)).card;
 }

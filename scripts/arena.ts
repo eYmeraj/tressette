@@ -3,10 +3,16 @@
  *
  * Usage: npm run arena -- --a classic --b classic [--games 1000] [--players 2|4] [--target 31] [--seed 1]
  *
+ * A bot can also be a trained network's weights file: --a neural:src/engine/ml/weights-2p.json
+ *
  * Each seed is played twice with the bots swapping sides (same shuffles, "duplicate" style), so luck of the
  * deal mostly cancels out and small differences in strength show up with fewer games.
  */
+import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { BOTS, Bot, BotId, applyBotMove } from '../src/engine/bots';
+import { makeNeuralBot } from '../src/engine/bots/neural';
+import { MlpWeights, checkMlp } from '../src/engine/ml/mlp';
 import { GameConfig, GameState, collectAndDraw, dealNext, newGame, nextHand, teamOf } from '../src/engine/game';
 import { seededRng } from '../src/engine/random';
 
@@ -16,6 +22,12 @@ function arg(name: string, fallback: string): string {
 }
 
 function bot(id: string): Bot {
+  if (id.startsWith('neural:')) {
+    const weights: MlpWeights = JSON.parse(readFileSync(id.slice('neural:'.length), 'utf8'));
+    const diff = checkMlp(weights);
+    if (diff > 1e-3) throw new Error(`${id} scores differ from PyTorch's by ${diff}`);
+    return makeNeuralBot(weights, `neural:${basename(id)}`);
+  }
   if (!(id in BOTS)) throw new Error(`Unknown bot "${id}". Available: ${Object.keys(BOTS).join(', ')}`);
   return BOTS[id as BotId];
 }

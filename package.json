@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "arena": "vite-node scripts/arena.ts --"
+    "arena": "vite-node scripts/arena.ts --",
+    "selfplay": "vite-node scripts/selfplay.ts --"
   },
   "dependencies": {
     "framer-motion": "^11.18.2",
