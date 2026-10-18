@@ -1,25 +1,44 @@
-import { CSSProperties } from 'react';
+import { CSSProperties, createContext, useContext } from 'react';
 import { motion, Transition } from 'framer-motion';
 import { Card, cardName, newDeck } from '../engine/cards';
 
 /** Spring used for every card flight (deal, play, draw) so they all feel alike. */
 export const CARD_SPRING: Transition = { type: 'spring', stiffness: 260, damping: 30, mass: 0.9 };
 
-function cardImage(card: Card): string {
-  return `${import.meta.env.BASE_URL}cards/${card.id}.webp`;
+export type CardArt = 'classic' | 'illustrated';
+
+export const CARD_ARTS: Record<CardArt, { label: string; dir: string }> = {
+  classic: { label: 'Classic', dir: 'cards' },
+  illustrated: { label: 'Engraved', dir: 'cards-illustrated' },
+};
+
+/** Which deck's faces every card on screen shows. */
+export const CardArtContext = createContext<CardArt>('classic');
+
+function cardImage(card: Card, art: CardArt): string {
+  return `${import.meta.env.BASE_URL}${CARD_ARTS[art].dir}/${card.id}.webp`;
 }
 
 /** Fetch and decode every face up front so cards don't pop in halfway through a flight. */
-export function preloadCardImages() {
+export function preloadCardImages(art: CardArt) {
   for (const card of newDeck()) {
     const img = new Image();
-    img.src = cardImage(card);
+    img.src = cardImage(card, art);
     img.decode().catch(() => {});
   }
 }
 
-export function CardFace({ card }: { card: Card }) {
-  return <img className="card-face" src={cardImage(card)} alt={cardName(card)} draggable={false} decoding="async" />;
+export function CardFace({ card, art }: { card: Card; art?: CardArt }) {
+  const contextArt = useContext(CardArtContext);
+  return (
+    <img
+      className="card-face"
+      src={cardImage(card, art ?? contextArt)}
+      alt={cardName(card)}
+      draggable={false}
+      decoding="async"
+    />
+  );
 }
 
 export function CardBack() {

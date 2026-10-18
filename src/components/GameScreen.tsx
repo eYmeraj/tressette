@@ -7,7 +7,8 @@ import {
 } from '../engine/game';
 import { HUMAN, useGame } from '../useGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
-import { CardView } from './Card';
+import { CardArt, CardView } from './Card';
+import { CardArtPicker } from './CardArtPicker';
 
 type Position = 'bottom' | 'right' | 'top' | 'left';
 
@@ -33,7 +34,17 @@ const collectVariants: Variants = {
   }),
 };
 
-export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () => void }) {
+export function GameScreen({
+  config,
+  art,
+  onArtChange,
+  onQuit,
+}: {
+  config: GameConfig;
+  art: CardArt;
+  onArtChange: (art: CardArt) => void;
+  onQuit: () => void;
+}) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Bots and trick timers wait while the settings dialog is open.
   const game = useGame(config, settingsOpen);
@@ -53,6 +64,7 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
   const signal = signalling && picked?.leadKey === leadKey ? picked.signal : null;
   const setSignal = (sig: Signal | null) => setPicked(sig && { signal: sig, leadKey });
   const lastTrick = state.tricks.at(-1);
+  const drawn = lastDraws(state);
 
   const play = (cardId: string) => {
     game.play(cardId, signal ?? undefined);
@@ -63,7 +75,7 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
       <section className="table">
         {pos.map((p, seat) =>
           seat === HUMAN ? null : (
-            <Opponent key={seat} state={state} seat={seat} position={p} name={names[seat]} />
+            <Opponent key={seat} state={state} seat={seat} position={p} name={names[seat]} drawn={drawn} />
           ),
         )}
 
@@ -118,6 +130,7 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
                 onClick={() => play(c.id)}
                 playable={myTurn && legal.has(c.id)}
                 dimmed={myTurn && !legal.has(c.id)}
+                className={drawn.has(c.id) ? 'shown' : undefined}
               />
             ))}
           </div>
@@ -125,7 +138,10 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
       </section>
 
       <div className="hud">
-        <Scoreboard state={state} teams={teams} />
+        <div className="hud-panel">
+          <Scoreboard state={state} teams={teams} />
+          <LastTrick trick={lastTrick} />
+        </div>
         <button
           type="button"
           className="icon-button"
@@ -142,7 +158,9 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
         </button>
       </div>
 
-      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onQuit={onQuit} />}
+      {settingsOpen && (
+        <Settings art={art} onArtChange={onArtChange} onClose={() => setSettingsOpen(false)} onQuit={onQuit} />
+      )}
 
       {(state.phase === 'handOver' || state.phase === 'gameOver') && (
         <HandSummary state={state} teams={teams} onNext={state.phase === 'handOver' ? game.nextHand : game.restart} />
@@ -212,16 +230,31 @@ function Deck({ cards }: { cards: Card[] }) {
   );
 }
 
+/**
+ * In the 2-player game each card drawn from the stock is shown to the opponent. The cards from the latest
+ * draw stay face up until the next trick is collected, so there is time to see what the opponent drew.
+ */
+function lastDraws(s: GameState): Set<string> {
+  const ids = new Set<string>();
+  for (let i = s.events.length - 1; i >= 0 && s.events[i].type === 'draw'; i--) {
+    const e = s.events[i];
+    if (e.type === 'draw') ids.add(e.card.id);
+  }
+  return ids;
+}
+
 function Opponent({
   state,
   seat,
   position,
   name,
+  drawn,
 }: {
   state: GameState;
   seat: number;
   position: Position;
   name: string;
+  drawn: Set<string>;
 }) {
   const active = state.phase === 'playing' && state.turn === seat;
   const partner = state.config.players === 4 && teamOf(state.config, seat) === teamOf(state.config, HUMAN);
@@ -233,7 +266,29 @@ function Opponent({
       </div>
       <div className={`backs ${position === 'left' || position === 'right' ? 'vertical' : ''}`}>
         {visibleHand(state, seat).map((c) => (
-          <CardView key={c.id} layoutId={c.id} faceDown className="small" />
+          <CardView
+            key={c.id}
+            layoutId={c.id}
+            card={c}
+            faceDown={!drawn.has(c.id)}
+            className={drawn.has(c.id) ? 'small shown' : 'small'}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A small, quiet reminder of the previous trick; the winning card is outlined. */
+function LastTrick({ trick }: { trick?: CompletedTrick }) {
+  if (!trick) return null;
+  const winner = trickWinnerIndex(trick.plays.map((p) => p.card));
+  return (
+    <div className="last-hand" aria-label="Last hand">
+      <span>Last hand</span>
+      <div className="mini-cards">
+        {trick.plays.map((p, i) => (
+          <CardView key={p.card.id} card={p.card} className={i === winner ? 'mini winner' : 'mini'} />
         ))}
       </div>
     </div>
@@ -256,7 +311,17 @@ function Scoreboard({ state, teams }: { state: GameState; teams: [string, string
   );
 }
 
-function Settings({ onClose, onQuit }: { onClose: () => void; onQuit: () => void }) {
+function Settings({
+  art,
+  onArtChange,
+  onClose,
+  onQuit,
+}: {
+  art: CardArt;
+  onArtChange: (art: CardArt) => void;
+  onClose: () => void;
+  onQuit: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -275,6 +340,8 @@ function Settings({ onClose, onQuit }: { onClose: () => void; onQuit: () => void
       >
         <h2 id="settings-title">Settings</h2>
         <p>The game is paused.</p>
+        <h3>Card style</h3>
+        <CardArtPicker value={art} onChange={onArtChange} />
         <div className="modal-actions">
           <button type="button" className="danger" onClick={onQuit}>
             Quit game

@@ -1,6 +1,6 @@
 # Tressette
 
-The Italian trick-taking card game in the browser, with the standard Piacentine deck (public-domain scan, see CREDITS.md).
+The Italian trick-taking card game in the browser, with the standard Piacentine deck (public-domain scan, see CREDITS.md) or an Engraved version of it (gold on suit-coloured grounds), chosen at setup or in Settings.
 Play 2-player (head to head, drawing from the deck) or 4-player (2 vs 2) against AI bots.
 
 ```sh
@@ -17,7 +17,7 @@ npm run build
   - `rules.ts` follow-suit, trick winner, accusi detection
   - `game.ts` immutable state machine: `newGame → playCard → collectTrick → nextHand`
   - `bot.ts` heuristic AI using only information a real player would have
-- `src/components/` — React UI (`Card.tsx` renders cards; images live in `public/cards/`)
+- `src/components/` — React UI (`Card.tsx` renders cards; images live in `public/cards/` and `public/cards-illustrated/`)
 - `src/useGame.ts` — wires the engine to React and paces the bots
 
 ## Rules implemented
