@@ -16,9 +16,9 @@ export function Setup({
   onArtChange?: (art: CardArt) => void;
   onStart: (config: GameConfig) => void;
 }) {
-  const [players, setPlayers] = useState<2 | 4>(4);
+  const [players, setPlayers] = useState<2 | 4>(2);
   const [targetScore, setTarget] = useState(31);
-  const [accusi, setAccusi] = useState(true);
+  const [accusi, setAccusi] = useState(false);
   const [signals, setSignals] = useState(true);
 
   return (
@@ -40,10 +40,10 @@ export function Setup({
         <fieldset>
           <legend>Players</legend>
           <label>
-            <input type="radio" name="players" checked={players === 4} onChange={() => setPlayers(4)} /> 4 players — you and Giulia vs two bots
+            <input type="radio" name="players" checked={players === 2} onChange={() => setPlayers(2)} /> 2 players — head to head, drawing from the deck
           </label>
           <label>
-            <input type="radio" name="players" checked={players === 2} onChange={() => setPlayers(2)} /> 2 players — head to head, drawing from the deck
+            <input type="radio" name="players" checked={players === 4} onChange={() => setPlayers(4)} /> 4 players — you and Giulia vs two bots
           </label>
         </fieldset>
 
@@ -90,7 +90,7 @@ export function Setup({
           <li>No trumps. You must follow the suit led if you can; the strongest card of that suit takes the trick.</li>
           <li>Asso = 1 point; 2, 3, Re, Cavallo, Fante = ⅓ point each; the last trick is worth 1 extra point. 11 points per hand.</li>
           <li>With 2 players, each of you draws a card after every trick (winner first) until the deck runs out.</li>
-          <li>Accusi are declared before your first card: Napoletana (Asso-2-3 of one suit) = 3, three Assi/2s/3s = 3, four = 4.</li>
+          <li>Accusi (optional) are called before your first card: Napoletana (Asso-2-3 of one suit) = 3, three Assi/2s/3s = 3, four = 4.</li>
         </ul>
       </details>
     </main>

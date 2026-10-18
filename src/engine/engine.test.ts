@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeCard, newDeck, thirds } from './cards';
 import { findAccusi, legalCards, trickWinnerIndex } from './rules';
 import {
-  GameConfig, GameState, collectTrick, dealNext, deckCards, declare, legalMoves, newGame, nextHand, playCard, visibleHand,
+  GameConfig, GameState, callAccusi, collectTrick, dealNext, deckCards, legalMoves, newGame, nextHand, playCard, visibleHand,
 } from './game';
 import { chooseMove } from './bot';
 
@@ -86,7 +86,7 @@ function playOut(config: GameConfig, seed: number): GameState[] {
     } else {
       const move = chooseMove(s, s.turn);
       expect(legalMoves(s, s.turn).some((c) => c.id === move.cardId)).toBe(true);
-      if (move.declare) s = declare(s, s.turn);
+      if (move.callAccusi) s = callAccusi(s, s.turn);
       s = playCard(s, s.turn, move.cardId, move.signal);
     }
   }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { chooseMove } from './engine/bot';
 import {
-  GameConfig, GameState, Signal, collectTrick, dealNext, declare, newGame, nextHand, playCard,
+  GameConfig, GameState, Signal, callAccusi, collectTrick, dealNext, newGame, nextHand, playCard,
 } from './engine/game';
 
 export const HUMAN = 0;
@@ -19,8 +19,8 @@ function botStep(s: GameState): GameState {
   if (s.phase !== 'playing' || s.turn === HUMAN) return s;
   const seat = s.turn;
   const move = chooseMove(s, seat);
-  const declared = move.declare ? declare(s, seat) : s;
-  return playCard(declared, seat, move.cardId, move.signal);
+  const called = move.callAccusi ? callAccusi(s, seat) : s;
+  return playCard(called, seat, move.cardId, move.signal);
 }
 
 /** Holds the game state and paces the deal, the bots and trick pauses on timers. */
@@ -45,7 +45,7 @@ export function useGame(config: GameConfig, paused = false) {
   return {
     state,
     play: useCallback((cardId: string, signal?: Signal) => setState((s) => playCard(s, HUMAN, cardId, signal)), []),
-    declare: useCallback(() => setState((s) => declare(s, HUMAN)), []),
+    callAccusi: useCallback(() => setState((s) => callAccusi(s, HUMAN)), []),
     nextHand: useCallback(() => setState((s) => nextHand(s)), []),
     restart: useCallback(() => setState(newGame(config)), [config]),
   };

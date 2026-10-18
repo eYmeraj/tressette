@@ -42,7 +42,9 @@ button:not(.card):hover { filter: brightness(1.1); }
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   transition: filter 0.15s ease, box-shadow 0.15s ease;
 }
-.card-face { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+/* Presses go to the card, not the image, so a long press never offers "Save image" (iOS callout, Android menu). */
+.card-face { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; -webkit-touch-callout: none; }
+.card { -webkit-touch-callout: none; }
 .card-back {
   width: 100%;
   height: 100%;
@@ -57,8 +59,39 @@ button:not(.card):hover { filter: brightness(1.1); }
 .card.small { width: calc(var(--card-w) * 0.5); }
 button.card { cursor: default; }
 button.card.playable { cursor: pointer; }
-button.card.playable:hover, button.card.playable:focus-visible { outline: none; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
+button.card.playable:focus-visible, .hand-slot.selected button.card.playable { outline: none; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
+@media (hover: hover) {
+  .hand-slot:hover button.card.playable { box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
+}
+/* Let presses on a card that can't be played reach its slot, so touch selection still works there. */
+button.card:disabled { pointer-events: none; }
 .card.dimmed { filter: brightness(0.55) saturate(0.6); }
+
+/* Asso di Coppe: the same art, dressed up with a gold rim, a soft glow and a light sweeping across it. */
+.card.special { position: relative; animation: special-glow 2.4s ease-in-out infinite alternate; }
+.card.special::before, .card.special::after { content: ''; position: absolute; pointer-events: none; z-index: 1; }
+.card.special::before {
+  inset: 0; border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--gold), inset 0 0 calc(var(--card-w) * 0.12) rgba(227, 165, 28, 0.55);
+}
+.card.special::after {
+  inset: -50% -100%;
+  background: linear-gradient(110deg, transparent 42%, rgba(255, 243, 200, 0.65) 50%, transparent 58%);
+  animation: special-sheen 3.6s ease-in-out infinite;
+}
+.card.special.dimmed { animation: none; }
+@keyframes special-glow {
+  from { filter: drop-shadow(0 0 2px rgba(227, 165, 28, 0.5)); }
+  to { filter: drop-shadow(0 0 9px rgba(255, 205, 80, 0.9)); }
+}
+@keyframes special-sheen {
+  0% { translate: -60% 0; }
+  45%, 100% { translate: 60% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card.special { animation: none; filter: drop-shadow(0 0 6px rgba(255, 205, 80, 0.8)); }
+  .card.special::after { animation: none; opacity: 0; }
+}
 
 /* ---------- setup ---------- */
 .setup { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
@@ -137,8 +170,27 @@ button.card.playable:hover, button.card.playable:focus-visible { outline: none; 
 .signals { display: flex; gap: 0.4rem; }
 .chip { border-radius: 999px !important; font-size: 0.85rem; }
 .chip.active { background: var(--gold) !important; color: var(--ink) !important; }
-.hand { display: flex; justify-content: center; padding-top: 16px; flex-wrap: nowrap; }
-.hand .card + .card { margin-left: calc(var(--card-w) * -0.18); }
+.seat-bottom { min-width: 0; }
+/* Touch gestures on the hand are ours (slide to pick), not the browser's (scroll/zoom). */
+.hand { position: relative; display: flex; justify-content: center; max-width: 100%; padding-top: 16px; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* Slots shrink to fit the width and the cards overlap into the next slot, so each visible strip is as wide as possible. */
+.hand-slot { position: relative; flex: 0 1 var(--card-w); min-width: 0; }
+.hand-slot:last-child { flex-shrink: 0; }
+.hand-slot + .hand-slot { margin-left: calc(var(--card-w) * -0.18); }
+/* Lift on the slot, not the card: the card moving must not move what is being hovered or touched. */
+.hand-slot button.card { transition: translate 0.15s ease, scale 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease; }
+.hand-slot:focus-within { z-index: 1; }
+.hand-slot button.card.playable:focus-visible { translate: 0 -16px; }
+@media (hover: hover) {
+  .hand-slot:hover { z-index: 1; }
+  .hand-slot:hover button.card.playable { translate: 0 -16px; }
+}
+.hand-slot.selected { z-index: 2; }
+.hand-slot.selected button.card { translate: 0 -24px; scale: 1.12; }
+.hand-hint {
+  position: absolute; left: 50%; bottom: 100%; translate: -50% -32px; z-index: 3; pointer-events: none;
+  background: rgba(0, 0, 0, 0.6); border-radius: 999px; padding: 0.15em 0.8em; font-size: 0.8rem; white-space: nowrap;
+}
 
 /* ---------- score & settings ---------- */
 .hud { position: fixed; top: 1rem; right: 1rem; display: flex; align-items: flex-start; gap: 0.5rem; z-index: 5; }
@@ -184,7 +236,16 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
 .modal button.danger { color: #9b2c22; border-color: #9b2c22; }
 
 @media (max-width: 860px) {
-  .hud { top: 0.5rem; right: 0.5rem; }
-  .scoreboard { min-width: 0; font-size: 0.85rem; }
-  .hand .card + .card { margin-left: calc(var(--card-w) * -0.45); }
+  /* The corner panel would cover the top player's cards: on small screens it becomes a bar above the table. */
+  .game { grid-template-rows: auto 1fr; }
+  .hud { position: static; order: -1; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem 0; }
+  .hud-panel { flex-direction: row; align-items: center; gap: 0.6rem; min-width: 0; }
+  .scoreboard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.15rem 0.75rem; min-width: 0; padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+  .score-row { gap: 0.4rem; }
+  .score-row strong { font-size: 1rem; }
+  .score-meta { margin-top: 0; }
+  .last-trick span { display: none; }
+  .card.mini { width: 24px; }
+  /* Bigger cards in hand on small screens: they are what the player touches. */
+  .hand { --card-w: clamp(56px, min(16vw, 20vh), 92px); }
 }
