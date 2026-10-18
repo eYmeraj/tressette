@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
-import { GameConfig } from './engine/game';
+import { GameState, newGame } from './engine/game';
+import { clearSavedGame, loadSavedGame } from './savedGame';
 import { CARD_ARTS, CardArt, CardArtContext, preloadCardImages } from './components/Card';
 import { Setup } from './components/Setup';
 import { GameScreen } from './components/GameScreen';
@@ -21,7 +22,7 @@ function savedArt(): CardArt {
 }
 
 export function App() {
-  const [config, setConfig] = useState<GameConfig | null>(null);
+  const [game, setGame] = useState<GameState | null>(null);
   const [art, setArt] = useState(savedArt);
   useEffect(() => {
     preloadCardImages(art);
@@ -36,10 +37,24 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <CardArtContext.Provider value={art}>
-        {config ? (
-          <GameScreen config={config} art={art} onArtChange={onArtChange} onQuit={() => setConfig(null)} />
+        {game ? (
+          <GameScreen
+            start={game}
+            art={art}
+            onArtChange={onArtChange}
+            onQuit={() => {
+              clearSavedGame();
+              setGame(null);
+            }}
+          />
         ) : (
-          <Setup art={art} onArtChange={onArtChange} onStart={setConfig} />
+          <Setup
+            art={art}
+            onArtChange={onArtChange}
+            saved={loadSavedGame()}
+            onContinue={setGame}
+            onStart={(config) => setGame(newGame(config))}
+          />
         )}
       </CardArtContext.Provider>
     </MotionConfig>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { chooseMove } from './engine/bot';
 import {
-  GameConfig, GameState, Signal, callAccusi, collectTrick, dealNext, newGame, nextHand, playCard,
+  GameState, Signal, callAccusi, collectTrick, dealNext, newGame, nextHand, playCard,
 } from './engine/game';
 
 export const HUMAN = 0;
@@ -24,11 +24,12 @@ function botStep(s: GameState): GameState {
 }
 
 /**
- * Holds the game state and paces the deal, the bots and trick pauses on timers. `paused` stops everything;
- * `holdTrick` keeps a completed trick on the table for as long as it returns true.
+ * Holds the game state, starting from `start` (a new deal or a saved game), and paces the deal, the bots and
+ * trick pauses on timers. `paused` stops everything; `holdTrick` keeps a completed trick on the table for as
+ * long as it returns true.
  */
-export function useGame(config: GameConfig, paused = false, holdTrick?: (s: GameState) => boolean) {
-  const [state, setState] = useState(() => newGame(config));
+export function useGame(start: GameState, paused = false, holdTrick?: (s: GameState) => boolean) {
+  const [state, setState] = useState(start);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -51,6 +52,6 @@ export function useGame(config: GameConfig, paused = false, holdTrick?: (s: Game
     play: useCallback((cardId: string, signal?: Signal) => setState((s) => playCard(s, HUMAN, cardId, signal)), []),
     callAccusi: useCallback(() => setState((s) => callAccusi(s, HUMAN)), []),
     nextHand: useCallback(() => setState((s) => nextHand(s)), []),
-    restart: useCallback(() => setState(newGame(config)), [config]),
+    restart: useCallback(() => setState((s) => newGame(s.config)), []),
   };
 }

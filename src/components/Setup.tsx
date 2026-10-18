@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SUITS, makeCard } from '../engine/cards';
-import { GameConfig } from '../engine/game';
+import { GameConfig, GameState } from '../engine/game';
+import { teamNames } from '../labels';
 import { CardArt, CardView } from './Card';
 import { CardArtPicker } from './CardArtPicker';
 
@@ -9,11 +10,16 @@ const PREVIEW = SUITS.map((suit) => makeCard(suit, 1));
 export function Setup({
   art,
   onArtChange,
+  saved,
+  onContinue,
   onStart,
 }: {
   art: CardArt;
   /** Omitted while the card-style choice is parked. */
   onArtChange?: (art: CardArt) => void;
+  /** A game left unfinished last time, offered to continue. */
+  saved: GameState | null;
+  onContinue: (game: GameState) => void;
   onStart: (config: GameConfig) => void;
 }) {
   const [players, setPlayers] = useState<2 | 4>(2);
@@ -29,6 +35,8 @@ export function Setup({
           <CardView key={c.id} card={c} />
         ))}
       </div>
+
+      {saved && <ContinueGame saved={saved} onContinue={() => onContinue(saved)} />}
 
       <form
         className="setup-form"
@@ -80,7 +88,9 @@ export function Setup({
           </fieldset>
         )}
 
-        <button type="submit" className="primary">Deal</button>
+        <button type="submit" className={saved ? undefined : 'primary'}>
+          {saved ? 'Deal a new game' : 'Deal'}
+        </button>
       </form>
 
       <details className="rules">
@@ -94,5 +104,20 @@ export function Setup({
         </ul>
       </details>
     </main>
+  );
+}
+
+function ContinueGame({ saved, onContinue }: { saved: GameState; onContinue: () => void }) {
+  const teams = teamNames(saved.config);
+  return (
+    <section className="continue">
+      <button type="button" className="primary" onClick={onContinue} autoFocus>
+        Continue game
+      </button>
+      <p>
+        {saved.config.players} players · {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand{' '}
+        {saved.handNumber}
+      </p>
+    </section>
   );
 }
