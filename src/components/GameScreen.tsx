@@ -42,7 +42,7 @@ export function GameScreen({
 }: {
   config: GameConfig;
   art: CardArt;
-  onArtChange: (art: CardArt) => void;
+  onArtChange?: (art: CardArt) => void;
   onQuit: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -318,7 +318,7 @@ function Settings({
   onQuit,
 }: {
   art: CardArt;
-  onArtChange: (art: CardArt) => void;
+  onArtChange?: (art: CardArt) => void;
   onClose: () => void;
   onQuit: () => void;
 }) {
@@ -340,8 +340,12 @@ function Settings({
       >
         <h2 id="settings-title">Settings</h2>
         <p>The game is paused.</p>
-        <h3>Card style</h3>
-        <CardArtPicker value={art} onChange={onArtChange} />
+        {onArtChange && (
+          <>
+            <h3>Card style</h3>
+            <CardArtPicker value={art} onChange={onArtChange} />
+          </>
+        )}
         <div className="modal-actions">
           <button type="button" className="danger" onClick={onQuit}>
             Quit game

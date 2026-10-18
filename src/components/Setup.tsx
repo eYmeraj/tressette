@@ -12,7 +12,8 @@ export function Setup({
   onStart,
 }: {
   art: CardArt;
-  onArtChange: (art: CardArt) => void;
+  /** Omitted while the card-style choice is parked. */
+  onArtChange?: (art: CardArt) => void;
   onStart: (config: GameConfig) => void;
 }) {
   const [players, setPlayers] = useState<2 | 4>(4);
@@ -72,10 +73,12 @@ export function Setup({
           </label>
         </fieldset>
 
-        <fieldset>
-          <legend>Card style</legend>
-          <CardArtPicker value={art} onChange={onArtChange} />
-        </fieldset>
+        {onArtChange && (
+          <fieldset>
+            <legend>Card style</legend>
+            <CardArtPicker value={art} onChange={onArtChange} />
+          </fieldset>
+        )}
 
         <button type="submit" className="primary">Deal</button>
       </form>
