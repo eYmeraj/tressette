@@ -1,11 +1,11 @@
 import { GameConfig, Signal } from './engine/game';
 
 export function seatNames(config: GameConfig): string[] {
-  return config.players === 4 ? ['You', 'Luca', 'Giulia', 'Marco'] : ['You', 'Luca'];
+  return config.players === 4 ? ['You', 'Very young Endi', 'Giulia', 'Marco'] : ['You', 'Very young Endi'];
 }
 
 export function teamNames(config: GameConfig): [string, string] {
-  return config.players === 4 ? ['You & Giulia', 'Luca & Marco'] : ['You', 'Luca'];
+  return config.players === 4 ? ['You & Giulia', 'Very young Endi & Marco'] : ['You', 'Very young Endi'];
 }
 
 export const SIGNALS: Record<Signal, { label: string; help: string }> = {
