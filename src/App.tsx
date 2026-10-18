@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { MotionConfig, motion } from 'framer-motion';
 import { GameState, newGame } from './engine/game';
 import { clearSavedGame, loadSavedGame } from './savedGame';
 import { CARD_ARTS, CardArt, CardArtContext, preloadCardImages } from './components/Card';
@@ -31,11 +31,14 @@ function savedAssoEffects(): boolean {
   }
 }
 
-/** A gentle fade and settle between the home screen and the table. */
+/**
+ * Each screen fades in as it arrives. Opacity only (scaling would throw off where the dealt cards' flights start),
+ * and no exit animation: waiting on the outgoing table to finish animating left the page blank on quit, because
+ * its cards' layout animations never reported done.
+ */
 const screen = {
-  initial: { opacity: 0, scale: 0.98 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.35, ease: 'easeOut' } },
-  exit: { opacity: 0, scale: 1.02, transition: { duration: 0.25, ease: 'easeIn' } },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } },
 } as const;
 
 export function App() {
@@ -63,34 +66,32 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <CardArtContext.Provider value={art}>
-        <AnimatePresence mode="wait">
-          {game ? (
-            <motion.div key="game" className="screen" {...screen}>
-              <GameScreen
-                start={game}
-                assoEffects={assoEffects}
-                art={art}
-                onArtChange={onArtChange}
-                onQuit={() => {
-                  clearSavedGame();
-                  setGame(null);
-                }}
-              />
-            </motion.div>
-          ) : (
-            <motion.div key="setup" className="screen" {...screen}>
-              <Setup
-                art={art}
-                onArtChange={onArtChange}
-                saved={loadSavedGame()}
-                onContinue={setGame}
-                onStart={(config) => setGame(newGame(config))}
-                assoEffects={assoEffects}
-                onAssoEffectsChange={changeAssoEffects}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {game ? (
+          <motion.div key="game" className="screen" {...screen}>
+            <GameScreen
+              start={game}
+              assoEffects={assoEffects}
+              art={art}
+              onArtChange={onArtChange}
+              onQuit={() => {
+                clearSavedGame();
+                setGame(null);
+              }}
+            />
+          </motion.div>
+        ) : (
+          <motion.div key="setup" className="screen" {...screen}>
+            <Setup
+              art={art}
+              onArtChange={onArtChange}
+              saved={loadSavedGame()}
+              onContinue={setGame}
+              onStart={(config) => setGame(newGame(config))}
+              assoEffects={assoEffects}
+              onAssoEffectsChange={changeAssoEffects}
+            />
+          </motion.div>
+        )}
       </CardArtContext.Provider>
     </MotionConfig>
   );

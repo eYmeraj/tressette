@@ -175,11 +175,11 @@ button.cookie {
 .setup-page { position: relative; min-height: 100vh; overflow: hidden; }
 .asso-toggle { display: block; margin-top: 1.25rem; font-size: 0.85rem; opacity: 0.85; text-align: left; cursor: pointer; }
 .setup { position: relative; max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
-/* The title in a fine Garamond italic, with a thin gold rule and diamond beneath. */
+/* The title in Italianno, a flowing Italian calligraphic script, with a thin gold rule and diamond beneath. */
 .setup h1 {
   margin: 0 0 1rem; color: var(--gold);
-  font-family: 'Cormorant Garamond', Garamond, Georgia, serif; font-style: italic; font-weight: 500;
-  font-size: clamp(3rem, 11vw, 4.4rem); line-height: 1; letter-spacing: 0.04em;
+  font-family: 'Italianno', 'Snell Roundhand', 'Apple Chancery', cursive; font-weight: 400;
+  font-size: clamp(4.2rem, 16vw, 6.2rem); line-height: 0.9; letter-spacing: 0.01em;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 .setup h1::after {
@@ -359,7 +359,9 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
 @media (max-width: 860px) {
   /* The corner panel would cover the top player's cards: on small screens it becomes a bar above the table. */
   .game { grid-template-rows: auto 1fr; }
-  .hud { position: static; order: -1; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem 0; }
+  /* Fixed height: if the bar grew (scores wrapping, the last hand appearing) the whole table would shift and every
+     card would animate to its new place. */
+  .hud { position: static; order: -1; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem 0; height: 3.8rem; }
   .hud-panel { flex-direction: row; align-items: center; gap: 0.6rem; min-width: 0; }
   .scoreboard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 0.75rem; min-width: 0; padding: 0.15rem 0.6rem; font-size: 1rem; rotate: none; }
   .score-title { display: none; }

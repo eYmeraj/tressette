@@ -1,6 +1,6 @@
 import { CSSProperties, createContext, useContext } from 'react';
 import { motion, Transition } from 'framer-motion';
-import { Card, cardName, newDeck, isAssoDiCoppe } from '../engine/cards';
+import { Card, DECK, cardName, isAssoDiCoppe } from '../engine/cards';
 
 /** Spring used for every card flight (deal, play, draw) so they all feel alike. */
 export const CARD_SPRING: Transition = { type: 'spring', stiffness: 260, damping: 30, mass: 0.9 };
@@ -24,12 +24,22 @@ function cardImage(card: Card, art: CardArt): string {
   return `${import.meta.env.BASE_URL}${CARD_ARTS[art].dir}/${card.id}.webp`;
 }
 
+/**
+ * Decoded faces, held for the life of the page. Without a reference the browser may drop them from its memory
+ * cache, and every card that lands somewhere new (a fresh <img>) would flash its white background while the
+ * image is fetched again.
+ */
+const decodedFaces = new Map<string, HTMLImageElement>();
+
 /** Fetch and decode every face up front so cards don't pop in halfway through a flight. */
 export function preloadCardImages(art: CardArt) {
-  for (const card of newDeck()) {
+  for (const card of DECK) {
+    const src = cardImage(card, art);
+    if (decodedFaces.has(src)) continue;
     const img = new Image();
-    img.src = cardImage(card, art);
+    img.src = src;
     img.decode().catch(() => {});
+    decodedFaces.set(src, img);
   }
 }
 
@@ -41,7 +51,9 @@ export function CardFace({ card, art }: { card: Card; art?: CardArt }) {
       src={cardImage(card, art ?? contextArt)}
       alt={cardName(card)}
       draggable={false}
-      decoding="async"
+      // Decode with the frame: a card that lands somewhere new mounts a fresh <img>, and async decoding can show
+      // it blank for a frame (a flicker on phones). The faces are small and preloaded, so this is cheap.
+      decoding="sync"
     />
   );
 }
