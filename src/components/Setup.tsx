@@ -34,6 +34,8 @@ export function Setup({
   const [signals, setSignals] = useState(true);
   const [bot, setBot] = useState<BotId>(DEFAULT_BOT);
 
+  const start = () => onStart({ players, targetScore, accusi, signals: players === 4 && signals, bot });
+
   return (
     <div className="setup-page">
       <CoffeeStain />
@@ -45,72 +47,37 @@ export function Setup({
           ))}
         </div>
 
-        {saved && <ContinueGame saved={saved} onContinue={() => onContinue(saved)} />}
-
-        <form
-          className="setup-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onStart({ players, targetScore, accusi, signals: players === 4 && signals, bot });
-          }}
-        >
-          <fieldset>
-            <legend>Players</legend>
-            <label>
-              <input type="radio" name="players" checked={players === 2} onChange={() => setPlayers(2)} /> 2 players — head to head, drawing from the deck
-            </label>
-            <label>
-              <input type="radio" name="players" checked={players === 4} onChange={() => setPlayers(4)} /> 4 players — you and Giulia vs two bots
-            </label>
-          </fieldset>
-
-          <fieldset>
-            <legend>Play to</legend>
-            {[21, 31, 41].map((t) => (
-              <label key={t} className="inline">
-                <input type="radio" name="target" checked={targetScore === t} onChange={() => setTarget(t)} /> {t}
-              </label>
-            ))}
-          </fieldset>
-
-          <fieldset>
-            <legend>Opponents</legend>
-            {(Object.keys(BOTS) as BotId[]).map((id) => (
-              <label key={id}>
-                <input type="radio" name="bot" checked={bot === id} onChange={() => setBot(id)} /> {BOTS[id].name}{' '}
-                <span className="bot-difficulty">{BOTS[id].difficulty}</span> — {BOTS[id].description}
-              </label>
-            ))}
-          </fieldset>
-
-          <fieldset>
-            <legend>Rules</legend>
-            <label>
-              <input type="checkbox" checked={accusi} onChange={(e) => setAccusi(e.target.checked)} /> Accusi (Napoletana,
-              three or four Assi/2s/3s)
-            </label>
-            <label className={players === 2 ? 'disabled' : ''}>
-              <input
-                type="checkbox"
-                checked={players === 4 && signals}
-                disabled={players === 2}
-                onChange={(e) => setSignals(e.target.checked)}
-              />{' '}
-              Signals to partner (Busso, Volo, Striscio)
-            </label>
-          </fieldset>
-
-          {onArtChange && (
-            <fieldset>
-              <legend>Card style</legend>
-              <CardArtPicker value={art} onChange={onArtChange} />
-            </fieldset>
+        <div className="options">
+          <Choice label="Players" value={players} options={[2, 4] as const} onChange={setPlayers} />
+          <Choice label="Play to" value={targetScore} options={[21, 31, 41]} onChange={setTarget} />
+          <Choice
+            label="Opponents"
+            value={bot}
+            options={Object.keys(BOTS) as BotId[]}
+            onChange={setBot}
+            name={(id) => BOTS[id].difficulty}
+            hint={(id) => BOTS[id].description}
+          />
+          <OnOff label="Accusi" on={accusi} onChange={setAccusi} hint="Napoletana, three or four Assi/2s/3s" />
+          {players === 4 && (
+            <OnOff label="Signals" on={signals} onChange={setSignals} hint="Busso, Volo and Striscio to your partner" />
           )}
+          <OnOff
+            label="I love Asso di Coppe"
+            on={assoEffects}
+            onChange={onAssoEffectsChange}
+            hint="Its shine, the Brava torta! celebration and the biscotto (2-player games)"
+          />
+          {onArtChange && <CardArtPicker value={art} onChange={onArtChange} />}
+        </div>
 
-          <button type="submit" className={saved ? undefined : 'primary'}>
-            {saved ? 'Deal a new game' : 'Deal'}
+        {saved ? (
+          <ContinueGame saved={saved} onContinue={() => onContinue(saved)} onNew={start} />
+        ) : (
+          <button type="button" className="primary play" onClick={start}>
+            Play
           </button>
-        </form>
+        )}
 
         <details className="rules">
           <summary>How to play</summary>
@@ -122,26 +89,86 @@ export function Setup({
             <li>Accusi (optional) are called before your first card: Napoletana (Asso-2-3 of one suit) = 3, three Assi/2s/3s = 3, four = 4.</li>
           </ul>
         </details>
-
-        <label className="asso-toggle">
-          <input type="checkbox" checked={assoEffects} onChange={(e) => onAssoEffectsChange(e.target.checked)} /> Asso di
-          Coppe effects (shine, celebration and biscotto in 2-player games)
-        </label>
       </main>
     </div>
   );
 }
 
-function ContinueGame({ saved, onContinue }: { saved: GameState; onContinue: () => void }) {
+/** One setting as a row of buttons: tap to choose. */
+function Choice<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+  name = String,
+  hint,
+}: {
+  label: string;
+  value: T;
+  options: readonly T[];
+  onChange: (value: T) => void;
+  name?: (value: T) => string;
+  hint?: (value: T) => string;
+}) {
+  return (
+    <div className="option-row">
+      <span className="option-label">{label}</span>
+      <div className="segmented" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            role="radio"
+            aria-checked={o === value}
+            className={o === value ? 'active' : undefined}
+            title={hint?.(o)}
+            onClick={() => onChange(o)}
+          >
+            {name(o)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A yes/no setting, shown like the others so every row lines up. */
+function OnOff({
+  label,
+  on,
+  onChange,
+  hint,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+  hint: string;
+}) {
+  return (
+    <Choice
+      label={label}
+      value={on ? 'On' : 'Off'}
+      options={['On', 'Off']}
+      onChange={(v) => onChange(v === 'On')}
+      hint={() => hint}
+    />
+  );
+}
+
+function ContinueGame({ saved, onContinue, onNew }: { saved: GameState; onContinue: () => void; onNew: () => void }) {
   const teams = teamNames(saved.config);
   return (
     <section className="continue">
-      <button type="button" className="primary" onClick={onContinue} autoFocus>
-        Continue game
-      </button>
+      <div className="continue-buttons">
+        <button type="button" className="primary play" onClick={onContinue}>
+          Continue
+        </button>
+        <button type="button" onClick={onNew}>
+          New game
+        </button>
+      </div>
       <p>
-        {saved.config.players} players vs {botFor(saved.config).name} · {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand{' '}
-        {saved.handNumber}
+        {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand {saved.handNumber} · {botFor(saved.config).difficulty}
       </p>
     </section>
   );
