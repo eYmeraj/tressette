@@ -171,7 +171,10 @@ button.cookie {
 .cookie-hint { font-size: 0.85rem; opacity: 0.7; }
 
 /* ---------- setup ---------- */
-.setup { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
+.screen { min-height: 100vh; }
+.setup-page { position: relative; min-height: 100vh; overflow: hidden; }
+.asso-toggle { display: block; margin-top: 1.25rem; font-size: 0.85rem; opacity: 0.85; text-align: left; cursor: pointer; }
+.setup { position: relative; max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
 .setup h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--gold); letter-spacing: 0.05em; }
 .setup-cards { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
 .setup-cards .card:nth-child(1) { rotate: -8deg; }
@@ -230,8 +233,8 @@ button.cookie {
 
 /* Positioning uses the individual translate/rotate properties: Framer Motion owns `transform`. */
 .center { grid-area: center; position: relative; min-height: calc(var(--card-h) * 2.25); }
-/* A thin gold pinstripe framing the playing area. */
-.table::before {
+/* A thin gold pinstripe framing the playing area (and the home screen, which sits on the same table). */
+.table::before, .setup-page::before {
   content: ''; position: absolute; inset: 0.6rem; pointer-events: none;
   border: 1px solid rgba(227, 165, 28, 0.28); border-radius: 18px;
   box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.08), inset 0 0 0 5px rgba(227, 165, 28, 0.12);
@@ -251,6 +254,12 @@ button.cookie {
 .deck-stack { position: relative; }
 .deck-top { position: absolute; top: 0; left: 0; }
 .deck-count { background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.draw-reveal {
+  position: absolute; left: calc(6% + var(--card-w) + 1.25rem); top: 50%; translate: 0 -50%;
+  display: flex; gap: 0.6rem; z-index: 1;
+}
+.draw-reveal-card { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.draw-reveal-card span { font-size: 0.75rem; background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; white-space: nowrap; }
 .played.winner .card { box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
 .signal-badge {
   position: absolute; left: 50%; bottom: -0.8em; translate: -50% 0;

@@ -1,4 +1,4 @@
-import { Card } from './cards';
+import { Card, DECK, cardIndex } from './cards';
 import { findAccusi, legalCards } from './rules';
 import { Accuso } from './rules';
 import { AccusiCall, CompletedTrick, GameConfig, GameEvent, GameState, Phase, Play } from './game';
@@ -44,6 +44,16 @@ export function seatView(s: GameState, seat: number): SeatView {
     scores: s.scores,
     events: s.events,
   };
+}
+
+/** Cards nobody has played yet and this seat doesn't hold: in other hands or the stock. */
+export function unseenCards(v: SeatView): Card[] {
+  // Flags by cardIndex rather than a Set of ids: bots call this on every simulated move.
+  const seen = new Uint8Array(DECK.length);
+  for (const c of v.hand) seen[cardIndex(c)] = 1;
+  for (const t of v.tricks) for (const p of t.plays) seen[cardIndex(p.card)] = 1;
+  for (const p of v.trick) seen[cardIndex(p.card)] = 1;
+  return DECK.filter((_, i) => !seen[i]);
 }
 
 /** The cards this seat may play now. */

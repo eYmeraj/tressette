@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeCard, newDeck, thirds } from './cards';
 import { findAccusi, legalCards, trickWinnerIndex } from './rules';
 import {
-  GameConfig, GameState, collectTrick, dealNext, deckCards, legalMoves, newGame, nextHand, visibleHand,
+  GameConfig, GameState, collectTrick, dealNext, finishDraw, deckCards, legalMoves, newGame, nextHand, visibleHand,
 } from './game';
 import { BOTS, applyBotMove } from './bots';
 import { seatView } from './view';
@@ -75,6 +75,8 @@ function playOut(config: GameConfig, seed: number): GameState[] {
       s = nextHand(s, rng);
     } else if (s.phase === 'trickComplete') {
       s = collectTrick(s);
+    } else if (s.phase === 'drawing') {
+      s = finishDraw(s);
     } else {
       const before = s;
       s = applyBotMove(s, BOTS.classic, rng);
@@ -118,7 +120,7 @@ describe('bot signals', () => {
         { seat: 3, card: makeCard('coppe', 4) },
       ],
     };
-    expect(BOTS.classic.chooseMove(seatView(s, 0), Math.random).cardId).toBe('3-coppe');
+    expect(BOTS.classic.chooseMove(seatView(s, 0)).cardId).toBe('3-coppe');
   });
 });
 

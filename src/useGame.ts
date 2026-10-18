@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { applyBotMove, botFor } from './engine/bots';
+import { applyMove, botIdFor } from './engine/bots';
+import { seatView } from './engine/view';
+import { requestBotMove } from './botClient';
 import {
-  GameState, Signal, callAccusi, collectTrick, dealNext, newGame, nextHand, playCard,
+  GameState, Signal, callAccusi, collectTrick, dealNext, finishDraw, newGame, nextHand, playCard,
 } from './engine/game';
 
 export const HUMAN = 0;
 const BOT_DELAY_MS = 800;
 const TRICK_PAUSE_MS = 1400;
 const DEAL_STEP_MS = 70;
+/** How long drawn cards stay face up beside the deck before joining the hands. */
+const DRAW_SHOW_MS = 1300;
 
 function dealAll(s: GameState): GameState {
   while (s.phase === 'dealing') s = dealNext(s);
   return s;
-}
-
-function botStep(s: GameState): GameState {
-  if (s.phase !== 'playing' || s.turn === HUMAN) return s;
-  return applyBotMove(s, botFor(s.config));
 }
 
 /**
@@ -38,8 +37,22 @@ export function useGame(start: GameState, paused = false, holdTrick?: (s: GameSt
     } else if (state.phase === 'trickComplete') {
       if (holdTrick?.(state)) return;
       timer = window.setTimeout(() => setState(collectTrick), TRICK_PAUSE_MS);
+    } else if (state.phase === 'drawing') {
+      timer = window.setTimeout(() => setState(finishDraw), DRAW_SHOW_MS);
     } else if (state.phase === 'playing' && state.turn !== HUMAN) {
-      timer = window.setTimeout(() => setState(botStep), BOT_DELAY_MS);
+      // The bot thinks (in a worker) while the delay runs; its move lands no sooner than BOT_DELAY_MS.
+      let cancelled = false;
+      const seat = state.turn;
+      const started = performance.now();
+      requestBotMove(botIdFor(state.config), seatView(state, seat)).then((move) => {
+        if (cancelled) return;
+        const wait = Math.max(0, BOT_DELAY_MS - (performance.now() - started));
+        timer = window.setTimeout(() => setState((s) => (s === state ? applyMove(s, seat, move) : s)), wait);
+      });
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
     }
     return () => window.clearTimeout(timer);
   }, [state, reducedMotion, paused, holdTrick]);

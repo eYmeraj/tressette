@@ -11,7 +11,7 @@ export function parseSave(raw: string | null): GameState | null {
     const save = JSON.parse(raw);
     const state = save?.version === VERSION ? save.state : null;
     if (!state?.config || !Array.isArray(state.hands) || typeof state.phase !== 'string') return null;
-    return state as GameState;
+    return { ...state, drawn: state.drawn ?? [] } as GameState;
   } catch {
     return null;
   }

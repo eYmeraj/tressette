@@ -7,7 +7,7 @@
  * deal mostly cancels out and small differences in strength show up with fewer games.
  */
 import { BOTS, Bot, BotId, applyBotMove } from '../src/engine/bots';
-import { GameConfig, GameState, collectTrick, dealNext, newGame, nextHand, teamOf } from '../src/engine/game';
+import { GameConfig, GameState, collectAndDraw, dealNext, newGame, nextHand, teamOf } from '../src/engine/game';
 import { seededRng } from '../src/engine/random';
 
 function arg(name: string, fallback: string): string {
@@ -33,7 +33,7 @@ function playGame(config: GameConfig, bots: [Bot, Bot], seed: number) {
   };
   while (s.phase !== 'gameOver') {
     if (s.phase === 'dealing') s = dealNext(s);
-    else if (s.phase === 'trickComplete') s = collectTrick(s);
+    else if (s.phase === 'trickComplete') s = collectAndDraw(s);
     else if (s.phase === 'handOver') {
       tally();
       s = nextHand(s, rng);
