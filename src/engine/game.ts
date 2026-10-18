@@ -22,7 +22,7 @@ export interface CompletedTrick {
   winner: number;
 }
 
-export interface Declaration {
+export interface AccusiCall {
   seat: number;
   accusi: Accuso[];
 }
@@ -36,7 +36,7 @@ export interface HandResult {
 }
 
 export type GameEvent =
-  | { type: 'declare'; seat: number; accusi: Accuso[] }
+  | { type: 'accuso'; seat: number; accusi: Accuso[] }
   | { type: 'signal'; seat: number; signal: Signal; suit: Suit }
   | { type: 'trick'; winner: number; thirds: number }
   | { type: 'draw'; seat: number; card: Card }
@@ -58,7 +58,7 @@ export interface GameState {
   stock: Card[];
   trick: Play[];
   tricks: CompletedTrick[];
-  declarations: Declaration[];
+  accusiCalls: AccusiCall[];
   hasPlayed: boolean[];
   scores: [number, number];
   handResult: HandResult | null;
@@ -96,7 +96,7 @@ function deal(config: GameConfig, dealer: number, handNumber: number, scores: [n
     stock: deck.slice(n * HAND_SIZE),
     trick: [],
     tricks: [],
-    declarations: [],
+    accusiCalls: [],
     hasPlayed: Array(n).fill(false),
     scores,
     handResult: null,
@@ -134,20 +134,20 @@ export function deckCards(s: GameState): Card[] {
   return [...undealt, ...s.stock];
 }
 
-/** Accusi must be declared before the player's first card of the hand. */
+/** Accusi must be called before the player's first card of the hand. */
 export function availableAccusi(s: GameState, seat: number): Accuso[] {
   if (!s.config.accusi || s.phase !== 'playing' || s.hasPlayed[seat]) return [];
-  if (s.declarations.some((d) => d.seat === seat)) return [];
+  if (s.accusiCalls.some((d) => d.seat === seat)) return [];
   return findAccusi(s.hands[seat]);
 }
 
-export function declare(s: GameState, seat: number): GameState {
+export function callAccusi(s: GameState, seat: number): GameState {
   const accusi = availableAccusi(s, seat);
-  if (!accusi.length) throw new Error(`Seat ${seat} has nothing to declare`);
+  if (!accusi.length) throw new Error(`Seat ${seat} has no accusi to call`);
   return {
     ...s,
-    declarations: [...s.declarations, { seat, accusi }],
-    events: [...s.events, { type: 'declare', seat, accusi }],
+    accusiCalls: [...s.accusiCalls, { seat, accusi }],
+    events: [...s.events, { type: 'accuso', seat, accusi }],
   };
 }
 
@@ -223,7 +223,7 @@ function finishHand(s: GameState): GameState {
   }
   const lastTrickTeam = teamOf(config, s.tricks[s.tricks.length - 1].winner);
   const accusiPoints = [0, 0];
-  for (const d of s.declarations) {
+  for (const d of s.accusiCalls) {
     accusiPoints[teamOf(config, d.seat)] += d.accusi.reduce((sum, a) => sum + a.points, 0);
   }
   // Leftover thirds are dropped, so card play is always worth 11 points per hand.

@@ -9,6 +9,7 @@ import { HUMAN, useGame } from '../useGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
 import { CardArt, CardView } from './Card';
 import { CardArtPicker } from './CardArtPicker';
+import { Hand } from './Hand';
 
 type Position = 'bottom' | 'right' | 'top' | 'left';
 
@@ -98,9 +99,9 @@ export function GameScreen({
 
           {accusi.length > 0 && (
             <div className="banner">
-              You can declare {accusi.map((a) => `${a.label} (+${a.points})`).join(', ')}
-              <button type="button" className="primary" onClick={game.declare}>
-                Declare
+              Accuso available: {accusi.map((a) => `${a.label} (+${a.points})`).join(', ')}
+              <button type="button" className="primary" onClick={game.callAccusi}>
+                Accuso
               </button>
             </div>
           )}
@@ -121,19 +122,13 @@ export function GameScreen({
             </div>
           )}
 
-          <div className="hand">
-            {sortHand(visibleHand(state, HUMAN)).map((c) => (
-              <CardView
-                key={c.id}
-                layoutId={c.id}
-                card={c}
-                onClick={() => play(c.id)}
-                playable={myTurn && legal.has(c.id)}
-                dimmed={myTurn && !legal.has(c.id)}
-                className={drawn.has(c.id) ? 'shown' : undefined}
-              />
-            ))}
-          </div>
+          <Hand
+            cards={sortHand(visibleHand(state, HUMAN))}
+            legal={legal}
+            myTurn={myTurn}
+            drawn={drawn}
+            onPlay={play}
+          />
         </div>
       </section>
 

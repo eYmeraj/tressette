@@ -5,7 +5,7 @@ import { GameState, Signal, availableAccusi, canSignal, legalMoves, teamOf } fro
 export interface BotMove {
   cardId: string;
   signal?: Signal;
-  declare: boolean;
+  callAccusi: boolean;
 }
 
 /**
@@ -15,14 +15,14 @@ export interface BotMove {
 export function chooseMove(s: GameState, seat: number): BotMove {
   const legal = legalMoves(s, seat);
   if (!legal.length) throw new Error(`Seat ${seat} cannot play now`);
-  const declare = availableAccusi(s, seat).length > 0;
+  const callAccusi = availableAccusi(s, seat).length > 0;
   const unseen = unseenCards(s, seat);
 
-  if (s.trick.length > 0) return { cardId: chooseFollow(s, seat, legal, unseen).id, declare };
+  if (s.trick.length > 0) return { cardId: chooseFollow(s, seat, legal, unseen).id, callAccusi };
 
   const card = chooseLead(s, seat, unseen);
   const signal = canSignal(s, seat) ? chooseSignal(s.hands[seat], card, unseen) : undefined;
-  return { cardId: card.id, signal, declare };
+  return { cardId: card.id, signal, callAccusi };
 }
 
 function unseenCards(s: GameState, seat: number): Card[] {

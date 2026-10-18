@@ -57,17 +57,23 @@ interface CardViewProps {
   layoutId?: string;
 }
 
+/** The Asso di Coppe gets extra flair wherever it shows face up. */
+function isSpecial(card: Card): boolean {
+  return card.suit === 'coppe' && card.rank === 1;
+}
+
 export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId }: CardViewProps) {
-  const classes = ['card', playable && 'playable', dimmed && 'dimmed', className].filter(Boolean).join(' ');
-  const face = faceDown || !card ? <CardBack /> : <CardFace card={card} />;
+  const faceUp = !faceDown && card;
+  const classes = ['card', playable && 'playable', dimmed && 'dimmed', faceUp && isSpecial(card) && 'special', className]
+    .filter(Boolean)
+    .join(' ');
+  const face = faceUp ? <CardFace card={card} /> : <CardBack />;
   if (onClick) {
     return (
       <motion.button
         type="button"
         layoutId={layoutId}
         transition={CARD_SPRING}
-        whileHover={{ y: playable ? -16 : 0 }}
-        whileFocus={{ y: playable ? -16 : 0 }}
         className={classes}
         style={style}
         onClick={onClick}

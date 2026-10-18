@@ -27,7 +27,7 @@ export interface Accuso {
 const PLURAL: Partial<Record<Rank, string>> = { 1: 'Assi', 2: 'Due', 3: 'Tre' };
 
 /**
- * Declarations ("accusi") available in a hand:
+ * Accusi available in a hand:
  * - Napoletana: Asso, 2 and 3 of the same suit — 3 points
  * - Three Assi, 2s or 3s — 3 points; all four — 4 points
  */
