@@ -4,6 +4,8 @@ import { Card, cardName, newDeck, isAssoDiCoppe } from '../engine/cards';
 
 /** Spring used for every card flight (deal, play, draw) so they all feel alike. */
 export const CARD_SPRING: Transition = { type: 'spring', stiffness: 260, damping: 30, mass: 0.9 };
+/** A slower, softer flight for a drawn card going from beside the deck into a hand, so it can be followed. */
+export const DRAW_SPRING: Transition = { type: 'spring', stiffness: 90, damping: 20, mass: 1.1 };
 
 export type CardArt = 'classic' | 'illustrated';
 
@@ -58,6 +60,8 @@ interface CardViewProps {
   style?: CSSProperties;
   /** Cards sharing a layoutId animate from their old spot on screen to the new one. */
   layoutId?: string;
+  /** How this card flies into place; CARD_SPRING unless given. */
+  transition?: Transition;
 }
 
 /** Holographic foil and twinkling sparkles laid over the Asso di Coppe; the art underneath is untouched. */
@@ -74,7 +78,17 @@ function SpecialShine() {
   );
 }
 
-export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId }: CardViewProps) {
+export function CardView({
+  card,
+  faceDown,
+  onClick,
+  playable,
+  dimmed,
+  className = '',
+  style,
+  layoutId,
+  transition = CARD_SPRING,
+}: CardViewProps) {
   const faceUp = !faceDown && card;
   // The Asso di Coppe gets extra flair wherever it shows face up.
   const special = useContext(AssoFlairContext) && faceUp && isAssoDiCoppe(card);
@@ -92,7 +106,7 @@ export function CardView({ card, faceDown, onClick, playable, dimmed, className 
       <motion.button
         type="button"
         layoutId={layoutId}
-        transition={CARD_SPRING}
+        transition={transition}
         className={classes}
         style={style}
         onClick={onClick}
@@ -104,7 +118,7 @@ export function CardView({ card, faceDown, onClick, playable, dimmed, className 
     );
   }
   return (
-    <motion.div layoutId={layoutId} transition={CARD_SPRING} className={classes} style={style}>
+    <motion.div layoutId={layoutId} transition={transition} className={classes} style={style}>
       {face}
     </motion.div>
   );
