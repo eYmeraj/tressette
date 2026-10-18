@@ -24,12 +24,13 @@ function botStep(s: GameState): GameState {
 }
 
 /** Holds the game state and paces the deal, the bots and trick pauses on timers. */
-export function useGame(config: GameConfig) {
+export function useGame(config: GameConfig, paused = false) {
   const [state, setState] = useState(() => newGame(config));
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     let timer: number | undefined;
+    if (paused) return;
     if (state.phase === 'dealing') {
       // Without the animation there is nothing to watch, so deal the whole hand at once.
       timer = window.setTimeout(() => setState(reducedMotion ? dealAll : dealNext), reducedMotion ? 0 : DEAL_STEP_MS);
@@ -39,7 +40,7 @@ export function useGame(config: GameConfig) {
       timer = window.setTimeout(() => setState(botStep), BOT_DELAY_MS);
     }
     return () => window.clearTimeout(timer);
-  }, [state, reducedMotion]);
+  }, [state, reducedMotion, paused]);
 
   return {
     state,
