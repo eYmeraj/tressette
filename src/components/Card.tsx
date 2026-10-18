@@ -15,6 +15,9 @@ export const CARD_ARTS: Record<CardArt, { label: string; dir: string }> = {
 /** Which deck's faces every card on screen shows. */
 export const CardArtContext = createContext<CardArt>('classic');
 
+/** Whether the Asso di Coppe shows its extra flair; only the 2-player game turns it on. */
+export const AssoFlairContext = createContext(false);
+
 function cardImage(card: Card, art: CardArt): string {
   return `${import.meta.env.BASE_URL}${CARD_ARTS[art].dir}/${card.id}.webp`;
 }
@@ -55,8 +58,6 @@ interface CardViewProps {
   style?: CSSProperties;
   /** Cards sharing a layoutId animate from their old spot on screen to the new one. */
   layoutId?: string;
-  /** Show the card as printed, without the Asso di Coppe's extra flair. */
-  plain?: boolean;
 }
 
 /** Holographic foil and twinkling sparkles laid over the Asso di Coppe; the art underneath is untouched. */
@@ -73,10 +74,10 @@ function SpecialShine() {
   );
 }
 
-export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId, plain }: CardViewProps) {
+export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId }: CardViewProps) {
   const faceUp = !faceDown && card;
   // The Asso di Coppe gets extra flair wherever it shows face up.
-  const special = faceUp && !plain && isAssoDiCoppe(card);
+  const special = useContext(AssoFlairContext) && faceUp && isAssoDiCoppe(card);
   const classes = ['card', playable && 'playable', dimmed && 'dimmed', special && 'special', className]
     .filter(Boolean)
     .join(' ');

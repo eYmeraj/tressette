@@ -7,7 +7,7 @@ import {
 } from '../engine/game';
 import { HUMAN, useGame } from '../useGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
-import { CardArt, CardView } from './Card';
+import { AssoFlairContext, CardArt, CardView } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
 import { Hand } from './Hand';
@@ -48,11 +48,14 @@ export function GameScreen({
   onQuit: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The Asso di Coppe's flair and its moment belong to the 2-player game only.
+  const assoFeature = config.players === 2;
   // The trick whose Asso di Coppe moment has been shown. Each trick is a new array, so a new game never matches.
   const [assoShown, setAssoShown] = useState<Play[] | null>(null);
   const holdForAsso = useCallback(
-    (s: GameState) => s.phase === 'trickComplete' && s.trick !== assoShown && s.trick.some((p) => isAssoDiCoppe(p.card)),
-    [assoShown],
+    (s: GameState) =>
+      assoFeature && s.phase === 'trickComplete' && s.trick !== assoShown && s.trick.some((p) => isAssoDiCoppe(p.card)),
+    [assoFeature, assoShown],
   );
   // Everything waits while the settings dialog is open; a trick with the Asso di Coppe stays until its moment ends.
   const game = useGame(config, settingsOpen, holdForAsso);
@@ -84,99 +87,101 @@ export function GameScreen({
   };
 
   return (
-    <div className="game">
-      <section className="table">
-        {pos.map((p, seat) =>
-          seat === HUMAN ? null : (
-            <Opponent key={seat} state={state} seat={seat} position={p} name={names[seat]} drawn={drawn} />
-          ),
-        )}
+    <AssoFlairContext.Provider value={assoFeature}>
+      <div className="game">
+        <section className="table">
+          {pos.map((p, seat) =>
+            seat === HUMAN ? null : (
+              <Opponent key={seat} state={state} seat={seat} position={p} name={names[seat]} drawn={drawn} />
+            ),
+          )}
 
-        <div className="center">
-          <Deck cards={deckCards(state)} />
-          <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
-        </div>
-
-        <div className="seat seat-bottom">
-          <div className="status">
-            {state.phase === 'dealing'
-              ? 'Dealing…'
-              : state.phase === 'playing' &&
-                (myTurn ? (
-                  <strong>Your turn{state.trick.length === 0 ? ' — lead any card' : ''}</strong>
-                ) : (
-                  `${names[state.turn]} is thinking…`
-                ))}
+          <div className="center">
+            <Deck cards={deckCards(state)} />
+            <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
           </div>
 
-          {accusi.length > 0 && (
-            <div className="banner">
-              Accuso available: {accusi.map((a) => `${a.label} (+${a.points})`).join(', ')}
-              <button type="button" className="primary" onClick={game.callAccusi}>
-                Accuso
-              </button>
+          <div className="seat seat-bottom">
+            <div className="status">
+              {state.phase === 'dealing'
+                ? 'Dealing…'
+                : state.phase === 'playing' &&
+                  (myTurn ? (
+                    <strong>Your turn{state.trick.length === 0 ? ' — lead any card' : ''}</strong>
+                  ) : (
+                    `${names[state.turn]} is thinking…`
+                  ))}
             </div>
-          )}
 
-          {signalling && (
-            <div className="signals" role="group" aria-label="Signal to partner">
-              {(Object.keys(SIGNALS) as Signal[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={signal === s ? 'chip active' : 'chip'}
-                  title={SIGNALS[s].help}
-                  onClick={() => setSignal(signal === s ? null : s)}
-                >
-                  {SIGNALS[s].label}
+            {accusi.length > 0 && (
+              <div className="banner">
+                Accuso available: {accusi.map((a) => `${a.label} (+${a.points})`).join(', ')}
+                <button type="button" className="primary" onClick={game.callAccusi}>
+                  Accuso
                 </button>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          <Hand
-            cards={sortHand(visibleHand(state, HUMAN))}
-            legal={legal}
-            myTurn={myTurn}
-            drawn={drawn}
-            onPlay={play}
-          />
-        </div>
-      </section>
+            {signalling && (
+              <div className="signals" role="group" aria-label="Signal to partner">
+                {(Object.keys(SIGNALS) as Signal[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={signal === s ? 'chip active' : 'chip'}
+                    title={SIGNALS[s].help}
+                    onClick={() => setSignal(signal === s ? null : s)}
+                  >
+                    {SIGNALS[s].label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-      <div className="hud">
-        <div className="hud-panel">
-          <Scoreboard state={state} teams={teams} />
-          <LastTrick trick={lastTrick} />
-        </div>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Settings"
-          title="Settings"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"
+            <Hand
+              cards={sortHand(visibleHand(state, HUMAN))}
+              legal={legal}
+              myTurn={myTurn}
+              drawn={drawn}
+              onPlay={play}
             />
-          </svg>
-        </button>
+          </div>
+        </section>
+
+        <div className="hud">
+          <div className="hud-panel">
+            <Scoreboard state={state} teams={teams} />
+            <LastTrick trick={lastTrick} />
+          </div>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {settingsOpen && (
+          <Settings art={art} onArtChange={onArtChange} onClose={() => setSettingsOpen(false)} onQuit={onQuit} />
+        )}
+
+        <AnimatePresence>
+          {assoPending && <AssoDiCoppeMoment key={leadKey} won={assoWon} onDone={closeAsso} />}
+        </AnimatePresence>
+
+        {(state.phase === 'handOver' || state.phase === 'gameOver') && (
+          <HandSummary state={state} teams={teams} onNext={state.phase === 'handOver' ? game.nextHand : game.restart} />
+        )}
       </div>
-
-      {settingsOpen && (
-        <Settings art={art} onArtChange={onArtChange} onClose={() => setSettingsOpen(false)} onQuit={onQuit} />
-      )}
-
-      <AnimatePresence>
-        {assoPending && <AssoDiCoppeMoment key={leadKey} won={assoWon} onDone={closeAsso} />}
-      </AnimatePresence>
-
-      {(state.phase === 'handOver' || state.phase === 'gameOver') && (
-        <HandSummary state={state} teams={teams} onNext={state.phase === 'handOver' ? game.nextHand : game.restart} />
-      )}
-    </div>
+    </AssoFlairContext.Provider>
   );
 }
 
