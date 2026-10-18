@@ -45,7 +45,7 @@ export type GameEvent =
   | { type: 'draw'; seat: number; card: Card }
   | { type: 'hand'; result: HandResult };
 
-export type Phase = 'dealing' | 'playing' | 'trickComplete' | 'handOver' | 'gameOver';
+export type Phase = 'dealing' | 'playing' | 'trickComplete' | 'drawing' | 'handOver' | 'gameOver';
 
 export interface GameState {
   config: GameConfig;
@@ -59,6 +59,8 @@ export interface GameState {
   dealt: number;
   /** Undealt cards; only used in the 2-player game, where both players draw after each trick. */
   stock: Card[];
+  /** Cards just drawn from the stock, shown face up beside it during 'drawing' before joining the hands. */
+  drawn: { seat: number; card: Card }[];
   trick: Play[];
   tricks: CompletedTrick[];
   accusiCalls: AccusiCall[];
@@ -97,6 +99,7 @@ function deal(config: GameConfig, dealer: number, handNumber: number, scores: [n
     hands: Array.from({ length: n }, (_, i) => deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE)),
     dealt: 0,
     stock: deck.slice(n * HAND_SIZE),
+    drawn: [],
     trick: [],
     tricks: [],
     accusiCalls: [],
@@ -194,7 +197,10 @@ export function trickWinner(trick: Play[]): number {
   return trick[winningPlayIndex(trick)].seat;
 }
 
-/** Awards the finished trick; in the 2-player game the winner then the loser draw from the stock. */
+/**
+ * Awards the finished trick. In the 2-player game the winner then the loser draw from the stock: the cards
+ * are shown face up first (phase 'drawing'), and `finishDraw` puts them into the hands.
+ */
 export function collectTrick(s: GameState): GameState {
   if (s.phase !== 'trickComplete') throw new Error('No completed trick to collect');
   const n = s.config.players;
@@ -204,28 +210,37 @@ export function collectTrick(s: GameState): GameState {
     { type: 'trick', winner, thirds: s.trick.reduce((sum, p) => sum + thirds(p.card), 0) },
   ];
 
-  let { hands, stock } = s;
-  if (stock.length >= n) {
-    hands = hands.map((h) => [...h]);
-    for (let i = 0; i < n; i++) {
-      const seat = (winner + i) % n;
-      hands[seat].push(stock[i]);
-      events.push({ type: 'draw', seat, card: stock[i] });
-    }
-    stock = stock.slice(n);
-  }
+  const drawn = s.stock.length >= n ? Array.from({ length: n }, (_, i) => ({ seat: (winner + i) % n, card: s.stock[i] })) : [];
+  for (const d of drawn) events.push({ type: 'draw', ...d });
 
   const next: GameState = {
     ...s,
-    hands,
-    stock,
+    stock: s.stock.slice(drawn.length),
+    drawn,
     trick: [],
     tricks: [...s.tricks, { plays: s.trick, winner }],
-    phase: 'playing',
+    phase: drawn.length ? 'drawing' : 'playing',
     turn: winner,
     events,
   };
-  return hands.every((h) => h.length === 0) ? finishHand(next) : next;
+  return s.hands.every((h) => h.length === 0) ? finishHand(next) : next;
+}
+
+/** Puts the cards shown during 'drawing' into their players' hands. */
+export function finishDraw(s: GameState): GameState {
+  if (s.phase !== 'drawing') throw new Error('Nothing is being drawn');
+  return {
+    ...s,
+    hands: s.hands.map((h, seat) => [...h, ...s.drawn.filter((d) => d.seat === seat).map((d) => d.card)]),
+    drawn: [],
+    phase: 'playing',
+  };
+}
+
+/** For simulations: collects the trick and, if cards were drawn, puts them straight into the hands. */
+export function collectAndDraw(s: GameState): GameState {
+  const next = collectTrick(s);
+  return next.phase === 'drawing' ? finishDraw(next) : next;
 }
 
 function finishHand(s: GameState): GameState {

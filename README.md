@@ -18,10 +18,14 @@ npm run arena -- --a classic --b classic --games 2000 --players 2   # compare tw
   - `rules.ts` follow-suit, trick winner, accusi detection
   - `game.ts` immutable state machine: `newGame → playCard → collectTrick → nextHand`
   - `view.ts` `SeatView`: what one seat may know (its hand, public play); the only thing bots see
-  - `bots/` the bot interface and registry (`BOTS`, chosen at setup); `classic.ts` is the rule-of-thumb bot
+  - `bots/` the bot interface and registry (`BOTS`, chosen at setup):
+    - `classic.ts` (Easy) plays by rules of thumb
+    - `stats.ts` (Medium/Hard) Monte Carlo: `sample.ts` deals the hidden cards consistently with what the seat has
+      seen (played cards, shown voids, face-up draws, accusi), each legal card is played out with the classic bot,
+      and the best average margin wins; Hard also solves the 2-player endgame exactly (`endgame.ts`)
   - `random.ts` seeded RNG for replayable simulations
 - `src/components/` — React UI (`Card.tsx` renders cards; images live in `public/cards/` and `public/cards-illustrated/`)
-- `src/useGame.ts` — wires the engine to React and paces the bots
+- `src/useGame.ts` — wires the engine to React and paces the bots; bot moves run in a Web Worker (`botWorker.ts`, `botClient.ts`)
 
 ## Rules implemented
 

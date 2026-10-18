@@ -1,8 +1,8 @@
-import { Card, Suit, newDeck, strength, thirds } from '../cards';
+import { Card, DECK, Suit, cardIndex, strength, thirds } from '../cards';
 import { trickWinnerIndex } from '../rules';
 import { Signal, canSignal, teamOf } from '../game';
-import { SeatView, accusiFor, legalPlays } from '../view';
-import type { BotMove } from '.';
+import { SeatView, accusiFor, legalPlays, unseenCards } from '../view';
+import type { BotMove } from './types';
 
 /**
  * Heuristic player. It only uses information a real player has: its own hand,
@@ -20,13 +20,6 @@ export function classicMove(s: SeatView): BotMove {
   const card = chooseLead(s, seat, unseen);
   const signal = canSignal(s, seat) ? chooseSignal(s.hand, card, unseen) : undefined;
   return { cardId: card.id, signal, callAccusi };
-}
-
-function unseenCards(s: SeatView): Card[] {
-  const seen = new Set(s.hand.map((c) => c.id));
-  for (const t of s.tricks) for (const p of t.plays) seen.add(p.card.id);
-  for (const p of s.trick) seen.add(p.card.id);
-  return newDeck().filter((c) => !seen.has(c.id));
 }
 
 /** No card still out there can beat this one in its suit. */
@@ -80,7 +73,7 @@ function chooseLead(s: SeatView, seat: number, unseen: Card[]): Card {
 
   // Otherwise lead from the longest suit, never a lone Asso, and avoid handing points
   // to an opponent known to hold a stronger card of that suit.
-  const known = knownOpponentCards(s, seat);
+  const known = knownOpponentCards(s, seat, unseen);
   const gifts = (c: Card) => thirds(c) > 0 && known.some((k) => k.suit === c.suit && strength(k) > strength(c));
   const bySuit = new Map<Suit, Card[]>();
   for (const c of hand) bySuit.set(c.suit, [...(bySuit.get(c.suit) ?? []), c]);
@@ -99,12 +92,18 @@ function leadFromSuit(cards: Card[]): Card {
 }
 
 /** In the 2-player game drawn cards are shown face up, so we know some of the opponent's hand. */
-function knownOpponentCards(s: SeatView, seat: number): Card[] {
-  const played = new Set(s.tricks.flatMap((t) => t.plays.map((p) => p.card.id)));
-  for (const p of s.trick) played.add(p.card.id);
+function knownOpponentCards(s: SeatView, seat: number, unseen: readonly Card[]): Card[] {
+  if (s.config.players !== 2) return [];
+  const out = new Uint8Array(DECK.length);
+  for (const c of unseen) out[cardIndex(c)] = 1;
   return s.events.flatMap((e) =>
-    e.type === 'draw' && teamOf(s.config, e.seat) !== teamOf(s.config, seat) && !played.has(e.card.id) ? [e.card] : [],
+    e.type === 'draw' && e.seat !== seat && out[cardIndex(e.card)] ? [e.card] : [],
   );
+}
+
+/** The signal a leader would give with `card`, if signals are allowed now. */
+export function classicSignal(s: SeatView, card: Card): Signal | undefined {
+  return canSignal(s, s.seat) ? chooseSignal(s.hand, card, unseenCards(s)) : undefined;
 }
 
 function chooseSignal(hand: Card[], led: Card, unseen: Card[]): Signal | undefined {

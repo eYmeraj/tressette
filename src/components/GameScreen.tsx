@@ -11,6 +11,7 @@ import { SIGNALS, seatNames, teamNames } from '../labels';
 import { AssoFlairContext, CardArt, CardView } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
+import { CoffeeStain } from './CoffeeStain';
 import { Hand } from './Hand';
 
 type Position = 'bottom' | 'right' | 'top' | 'left';
@@ -39,20 +40,23 @@ const collectVariants: Variants = {
 
 export function GameScreen({
   start,
+  assoEffects,
   art,
   onArtChange,
   onQuit,
 }: {
   /** A freshly dealt game or one restored from the save. */
   start: GameState;
+  /** The player's home-screen choice to show the Asso di Coppe's flair and moments. */
+  assoEffects: boolean;
   art: CardArt;
   onArtChange?: (art: CardArt) => void;
   onQuit: () => void;
 }) {
   const { config } = start;
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // The Asso di Coppe's flair and its moment belong to the 2-player game only.
-  const assoFeature = config.players === 2;
+  // The Asso di Coppe's flair and its moment belong to the 2-player game only, and can be switched off.
+  const assoFeature = assoEffects && config.players === 2;
   // The trick whose Asso di Coppe moment has been shown. Each trick is a new array, so a new game never matches.
   const [assoShown, setAssoShown] = useState<Play[] | null>(null);
   const holdForAsso = useCallback(
@@ -104,6 +108,7 @@ export function GameScreen({
 
           <div className="center">
             <Deck cards={deckCards(state)} />
+            <DrawReveal drawn={state.drawn} names={names} />
             <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
           </div>
 
@@ -111,6 +116,8 @@ export function GameScreen({
             <div className="status">
               {state.phase === 'dealing'
                 ? 'Dealing…'
+                : state.phase === 'drawing'
+                ? 'Drawing…'
                 : state.phase === 'playing' &&
                   (myTurn ? (
                     <strong>Your turn{state.trick.length === 0 ? ' — lead any card' : ''}</strong>
@@ -265,6 +272,21 @@ function lastDraws(s: GameState): Set<string> {
   return ids;
 }
 
+/** The cards just drawn in the 2-player game, face up beside the deck with who gets each, before they go to hand. */
+function DrawReveal({ drawn, names }: { drawn: GameState['drawn']; names: string[] }) {
+  if (!drawn.length) return null;
+  return (
+    <div className="draw-reveal" aria-live="polite">
+      {drawn.map(({ seat, card }) => (
+        <div key={card.id} className="draw-reveal-card">
+          <CardView card={card} layoutId={card.id} />
+          <span>{names[seat]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Opponent({
   state,
   seat,
@@ -314,50 +336,6 @@ function LastTrick({ trick }: { trick?: CompletedTrick }) {
         ))}
       </div>
     </div>
-  );
-}
-
-/**
- * The ring an espresso cup left on the felt: an uneven dried edge, a fainter second ring where the cup was
- * put down again, and a few drips. SVG noise filters roughen the shapes so they read as soaked into cloth.
- */
-function CoffeeStain() {
-  return (
-    <svg className="coffee-stain" viewBox="0 0 200 200" aria-hidden="true">
-      <defs>
-        <filter id="stain-dry" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="7" result="warp" />
-          <feDisplacementMap in="SourceGraphic" in2="warp" scale="7" xChannelSelector="R" yChannelSelector="G" result="shape" />
-          <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="11" result="blotch" />
-          <feColorMatrix in="blotch" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.3 0.15" result="patchy" />
-          <feComposite in="shape" in2="patchy" operator="in" />
-        </filter>
-        <filter id="stain-wash" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="3" result="warp" />
-          <feDisplacementMap in="SourceGraphic" in2="warp" scale="9" xChannelSelector="R" yChannelSelector="G" result="shape" />
-          <feGaussianBlur in="shape" stdDeviation="1.6" />
-        </filter>
-        <filter id="stain-edge" x="-50%" y="-50%" width="200%" height="200%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.3" numOctaves="2" seed="5" result="warp" />
-          <feDisplacementMap in="SourceGraphic" in2="warp" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </defs>
-      <g fill="none" stroke="currentColor">
-        <circle cx="96" cy="100" r="60" fill="currentColor" fillOpacity="0.08" stroke="none" filter="url(#stain-wash)" />
-        <circle cx="96" cy="100" r="62" strokeWidth="10" strokeOpacity="0.14" filter="url(#stain-wash)" />
-        <circle cx="96" cy="100" r="64.5" strokeWidth="3.4" strokeOpacity="0.6" filter="url(#stain-dry)" />
-        <circle cx="96" cy="100" r="62.5" strokeWidth="1.4" strokeOpacity="0.35" strokeDasharray="120 40 90 60" filter="url(#stain-dry)" />
-        <circle cx="113" cy="87" r="61" strokeWidth="2.6" strokeOpacity="0.38" strokeDasharray="170 400" strokeDashoffset="-30" filter="url(#stain-dry)" />
-        <circle cx="113" cy="87" r="58" strokeWidth="8" strokeOpacity="0.07" strokeDasharray="170 400" strokeDashoffset="-30" filter="url(#stain-wash)" />
-      </g>
-      <g fill="currentColor" filter="url(#stain-edge)">
-        <circle cx="167" cy="134" r="4.5" fillOpacity="0.4" />
-        <circle cx="176" cy="145" r="2.2" fillOpacity="0.35" />
-        <circle cx="159" cy="147" r="1.6" fillOpacity="0.35" />
-        <circle cx="183" cy="128" r="1.2" fillOpacity="0.3" />
-        <ellipse cx="35" cy="62" rx="3.2" ry="2.2" fillOpacity="0.3" />
-      </g>
-    </svg>
   );
 }
 

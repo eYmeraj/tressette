@@ -1,27 +1,14 @@
-import { GameConfig, GameState, Rng, Signal, callAccusi, playCard } from '../game';
-import { SeatView, seatView } from '../view';
+import { GameConfig, GameState, Rng } from '../game';
+import { seatView } from '../view';
 import { classicMove } from './classic';
+import { makeStatsBot } from './stats';
+import { Bot, applyMove } from './types';
 
-export interface BotMove {
-  cardId: string;
-  signal?: Signal;
-  callAccusi: boolean;
-}
-
-export type BotId = 'classic';
-
-export interface Bot {
-  id: BotId;
-  /** Shown on the setup screen. */
-  name: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  description: string;
-  /** Picks a move from what this seat can see; `rng` is for bots that sample or explore. */
-  chooseMove(view: SeatView, rng: Rng): BotMove;
-}
+export type { Bot, BotMove } from './types';
+export { applyMove } from './types';
 
 /** Every opponent the player can choose, in the order the setup screen lists them. */
-export const BOTS: Record<BotId, Bot> = {
+export const BOTS = {
   classic: {
     id: 'classic',
     name: 'Classic',
@@ -29,19 +16,36 @@ export const BOTS: Record<BotId, Bot> = {
     description: 'Plays by simple rules of thumb.',
     chooseMove: classicMove,
   },
-};
+  'stats-medium': {
+    id: 'stats-medium',
+    name: 'Stats',
+    difficulty: 'Medium',
+    description: 'Imagines a few dozen ways the hidden cards could lie and plays what works best.',
+    chooseMove: makeStatsBot({ samples: 24, endgame: false }),
+  },
+  'stats-hard': {
+    id: 'stats-hard',
+    name: 'Stats',
+    difficulty: 'Hard',
+    description: 'Weighs hundreds of possible deals, and plays the 2-player endgame perfectly.',
+    chooseMove: makeStatsBot({ samples: 120, endgame: true }),
+  },
+} satisfies Record<string, Bot>;
+
+export type BotId = keyof typeof BOTS;
 
 export const DEFAULT_BOT: BotId = 'classic';
 
-/** The bot a game uses; games saved before bots were selectable get the default. */
-export function botFor(config: GameConfig): Bot {
-  return BOTS[config.bot ?? DEFAULT_BOT] ?? BOTS[DEFAULT_BOT];
+/** The bot a game uses; games saved before bots were selectable (or with a retired bot) get the default. */
+export function botIdFor(config: GameConfig): BotId {
+  return config.bot && config.bot in BOTS ? config.bot : DEFAULT_BOT;
 }
 
-/** Lets `bot` take the current seat's turn: call any accusi it wants, then play its card. */
+export function botFor(config: GameConfig): Bot {
+  return BOTS[botIdFor(config)];
+}
+
+/** Lets `bot` take the current seat's turn. */
 export function applyBotMove(s: GameState, bot: Bot, rng: Rng = Math.random): GameState {
-  const seat = s.turn;
-  const move = bot.chooseMove(seatView(s, seat), rng);
-  const called = move.callAccusi ? callAccusi(s, seat) : s;
-  return playCard(called, seat, move.cardId, move.signal);
+  return applyMove(s, s.turn, bot.chooseMove(seatView(s, s.turn), rng));
 }

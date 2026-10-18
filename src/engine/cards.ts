@@ -25,6 +25,16 @@ export function newDeck(): Card[] {
   return SUITS.flatMap((suit) => RANKS.map((rank) => makeCard(suit, rank)));
 }
 
+/** All 40 cards, built once, for lookups that don't need a fresh deck. */
+export const DECK: readonly Card[] = newDeck();
+
+const INDEX: Record<string, number> = Object.fromEntries(DECK.map((c, i) => [c.id, i]));
+
+/** Position of a card in DECK (0–39): a cheap key for per-card flags. */
+export function cardIndex(card: Card): number {
+  return INDEX[card.id];
+}
+
 export function shuffle<T>(items: readonly T[], rng: () => number = Math.random): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
