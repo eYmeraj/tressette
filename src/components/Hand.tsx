@@ -25,7 +25,6 @@ function cardAt(x: number, y: number): string | null {
  * letting go on it keeps it selected, and tapping the selected card again plays it.
  */
 export function Hand({ cards, legal, myTurn, drawn, onPlay }: HandProps) {
-  const handRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const gesture = useRef<{ id: string; wasSelected: boolean } | null>(null);
   // Set while the last interaction was touch, so the click the browser sends afterwards doesn't play a card.
@@ -63,13 +62,12 @@ export function Hand({ cards, legal, myTurn, drawn, onPlay }: HandProps) {
     const g = gesture.current;
     gesture.current = null;
     if (!g || !playable(g.id)) return;
-    const top = handRef.current!.getBoundingClientRect().top;
+    const top = e.currentTarget.getBoundingClientRect().top;
     if (e.clientY < top - PLAY_LIFT_PX || g.wasSelected) play(g.id);
   };
 
   return (
     <div
-      ref={handRef}
       className="hand"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

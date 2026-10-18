@@ -15,6 +15,12 @@ export function makeCard(suit: Suit, rank: Rank): Card {
   return { suit, rank, id: `${rank}-${suit}` };
 }
 
+export const ASSO_DI_COPPE = makeCard('coppe', 1);
+
+export function isAssoDiCoppe(card: Card): boolean {
+  return card.id === ASSO_DI_COPPE.id;
+}
+
 export function newDeck(): Card[] {
   return SUITS.flatMap((suit) => RANKS.map((rank) => makeCard(suit, rank)));
 }

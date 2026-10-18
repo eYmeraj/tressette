@@ -1,6 +1,6 @@
 import { CSSProperties, createContext, useContext } from 'react';
 import { motion, Transition } from 'framer-motion';
-import { Card, cardName, newDeck } from '../engine/cards';
+import { Card, cardName, newDeck, isAssoDiCoppe } from '../engine/cards';
 
 /** Spring used for every card flight (deal, play, draw) so they all feel alike. */
 export const CARD_SPRING: Transition = { type: 'spring', stiffness: 260, damping: 30, mass: 0.9 };
@@ -55,19 +55,37 @@ interface CardViewProps {
   style?: CSSProperties;
   /** Cards sharing a layoutId animate from their old spot on screen to the new one. */
   layoutId?: string;
+  /** Show the card as printed, without the Asso di Coppe's extra flair. */
+  plain?: boolean;
 }
 
-/** The Asso di Coppe gets extra flair wherever it shows face up. */
-function isSpecial(card: Card): boolean {
-  return card.suit === 'coppe' && card.rank === 1;
+/** Holographic foil and twinkling sparkles laid over the Asso di Coppe; the art underneath is untouched. */
+function SpecialShine() {
+  return (
+    <>
+      <span className="foil" aria-hidden="true" />
+      <span className="sparkles" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <i key={i}>✦</i>
+        ))}
+      </span>
+    </>
+  );
 }
 
-export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId }: CardViewProps) {
+export function CardView({ card, faceDown, onClick, playable, dimmed, className = '', style, layoutId, plain }: CardViewProps) {
   const faceUp = !faceDown && card;
-  const classes = ['card', playable && 'playable', dimmed && 'dimmed', faceUp && isSpecial(card) && 'special', className]
+  // The Asso di Coppe gets extra flair wherever it shows face up.
+  const special = faceUp && !plain && isAssoDiCoppe(card);
+  const classes = ['card', playable && 'playable', dimmed && 'dimmed', special && 'special', className]
     .filter(Boolean)
     .join(' ');
-  const face = faceUp ? <CardFace card={card} /> : <CardBack />;
+  const face = (
+    <>
+      {faceUp ? <CardFace card={card} /> : <CardBack />}
+      {special && <SpecialShine />}
+    </>
+  );
   if (onClick) {
     return (
       <motion.button

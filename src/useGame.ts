@@ -23,8 +23,11 @@ function botStep(s: GameState): GameState {
   return playCard(called, seat, move.cardId, move.signal);
 }
 
-/** Holds the game state and paces the deal, the bots and trick pauses on timers. */
-export function useGame(config: GameConfig, paused = false) {
+/**
+ * Holds the game state and paces the deal, the bots and trick pauses on timers. `paused` stops everything;
+ * `holdTrick` keeps a completed trick on the table for as long as it returns true.
+ */
+export function useGame(config: GameConfig, paused = false, holdTrick?: (s: GameState) => boolean) {
   const [state, setState] = useState(() => newGame(config));
   const reducedMotion = useReducedMotion();
 
@@ -35,12 +38,13 @@ export function useGame(config: GameConfig, paused = false) {
       // Without the animation there is nothing to watch, so deal the whole hand at once.
       timer = window.setTimeout(() => setState(reducedMotion ? dealAll : dealNext), reducedMotion ? 0 : DEAL_STEP_MS);
     } else if (state.phase === 'trickComplete') {
+      if (holdTrick?.(state)) return;
       timer = window.setTimeout(() => setState(collectTrick), TRICK_PAUSE_MS);
     } else if (state.phase === 'playing' && state.turn !== HUMAN) {
       timer = window.setTimeout(() => setState(botStep), BOT_DELAY_MS);
     }
     return () => window.clearTimeout(timer);
-  }, [state, reducedMotion, paused]);
+  }, [state, reducedMotion, paused, holdTrick]);
 
   return {
     state,

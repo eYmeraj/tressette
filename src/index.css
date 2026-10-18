@@ -3,6 +3,7 @@
   --felt-dark: #143d27;
   --cream: #fbf6e8;
   --gold: #e3a51c;
+  --gold-light: #ffd76a;
   --ink: #2b2118;
   --team-0: #f4cf5a;
   --team-1: #e9867b;
@@ -41,10 +42,11 @@ button:not(.card):hover { filter: brightness(1.1); }
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   transition: filter 0.15s ease, box-shadow 0.15s ease;
+  -webkit-touch-callout: none;
+  --lift-ring: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold);
 }
 /* Presses go to the card, not the image, so a long press never offers "Save image" (iOS callout, Android menu). */
-.card-face { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; -webkit-touch-callout: none; }
-.card { -webkit-touch-callout: none; }
+.card-face { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; }
 .card-back {
   width: 100%;
   height: 100%;
@@ -59,39 +61,107 @@ button:not(.card):hover { filter: brightness(1.1); }
 .card.small { width: calc(var(--card-w) * 0.5); }
 button.card { cursor: default; }
 button.card.playable { cursor: pointer; }
-button.card.playable:focus-visible, .hand-slot.selected button.card.playable { outline: none; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
+button.card.playable:focus-visible, .hand-slot.selected button.card.playable { outline: none; box-shadow: var(--lift-ring); }
 @media (hover: hover) {
-  .hand-slot:hover button.card.playable { box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--gold); }
+  .hand-slot:hover button.card.playable { box-shadow: var(--lift-ring); }
 }
 /* Let presses on a card that can't be played reach its slot, so touch selection still works there. */
 button.card:disabled { pointer-events: none; }
 .card.dimmed { filter: brightness(0.55) saturate(0.6); }
 
-/* Asso di Coppe: the same art, dressed up with a gold rim, a soft glow and a light sweeping across it. */
-.card.special { position: relative; animation: special-glow 2.4s ease-in-out infinite alternate; }
+/* Asso di Coppe: the same art, dressed up with a gold rim, holographic foil, sparkles, a glow and a light sweep. */
+.card.special { position: relative; animation: special-glow 3s ease-in-out infinite alternate; }
 .card.special::before, .card.special::after { content: ''; position: absolute; pointer-events: none; z-index: 1; }
 .card.special::before {
   inset: 0; border-radius: inherit;
-  box-shadow: inset 0 0 0 2px var(--gold), inset 0 0 calc(var(--card-w) * 0.12) rgba(227, 165, 28, 0.55);
+  box-shadow: inset 0 0 0 2px var(--gold-light), inset 0 0 0 3px rgba(140, 90, 0, 0.6), inset 0 0 calc(var(--card-w) * 0.16) rgba(255, 200, 60, 0.7);
 }
 .card.special::after {
   inset: -50% -100%;
-  background: linear-gradient(110deg, transparent 42%, rgba(255, 243, 200, 0.65) 50%, transparent 58%);
-  animation: special-sheen 3.6s ease-in-out infinite;
+  background: linear-gradient(110deg, transparent 40%, rgba(255, 248, 215, 0.85) 50%, transparent 60%);
+  mix-blend-mode: overlay;
+  animation: special-sheen 2.6s ease-in-out infinite;
 }
-.card.special.dimmed { animation: none; }
+.card.special .foil {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(125deg, #ff9a9e, #fad0c4, #fbc2eb, #a1c4fd, #c2e9fb, #d4fc79, #f6d365, #ff9a9e);
+  background-size: 400% 400%;
+  mix-blend-mode: color-dodge; opacity: 0.32;
+  animation: special-foil 6s linear infinite;
+}
+.card.special .sparkles { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.card.special .sparkles i {
+  position: absolute; font-style: normal; line-height: 1; color: #fff6cf;
+  font-size: calc(var(--card-w) * 0.2); text-shadow: 0 0 4px var(--gold-light), 0 0 8px var(--gold);
+  scale: 0; animation: sparkle 2.2s ease-in-out infinite;
+}
+.card.special .sparkles i:nth-child(1) { left: 12%; top: 10%; }
+.card.special .sparkles i:nth-child(2) { left: 72%; top: 22%; animation-delay: 0.45s; }
+.card.special .sparkles i:nth-child(3) { left: 22%; top: 58%; animation-delay: 0.9s; }
+.card.special .sparkles i:nth-child(4) { left: 68%; top: 76%; animation-delay: 1.35s; }
+.card.special .sparkles i:nth-child(5) { left: 44%; top: 38%; animation-delay: 1.8s; font-size: calc(var(--card-w) * 0.14); }
+/* Too small for sparkles to read, and not worth animating the foil and sheen; the glow and rim carry it. */
+.card.special.mini .sparkles, .card.special.small .sparkles { display: none; }
+.card.special.mini .foil, .card.special.small .foil { animation: none; }
+/* A sheen that isn't moving would sit across the card as a stripe, so hide it rather than stop it. */
+.card.special.mini::after, .card.special.small::after, .card.special.dimmed::after { display: none; }
+.card.special.dimmed, .card.special.dimmed .foil, .card.special.dimmed .sparkles i { animation: none; }
 @keyframes special-glow {
-  from { filter: drop-shadow(0 0 2px rgba(227, 165, 28, 0.5)); }
-  to { filter: drop-shadow(0 0 9px rgba(255, 205, 80, 0.9)); }
+  from { filter: drop-shadow(0 0 2px rgba(255, 205, 80, 0.45)); }
+  to { filter: drop-shadow(0 0 5px rgba(255, 205, 80, 0.6)); }
 }
 @keyframes special-sheen {
   0% { translate: -60% 0; }
-  45%, 100% { translate: 60% 0; }
+  40%, 100% { translate: 60% 0; }
+}
+@keyframes special-foil {
+  to { background-position: 400% 400%; }
+}
+@keyframes sparkle {
+  0%, 100% { scale: 0; rotate: 0deg; opacity: 0; }
+  50% { scale: 1; rotate: 90deg; opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .card.special { animation: none; filter: drop-shadow(0 0 6px rgba(255, 205, 80, 0.8)); }
-  .card.special::after { animation: none; opacity: 0; }
+  .card.special { animation: none; filter: drop-shadow(0 0 4px rgba(255, 205, 80, 0.55)); }
+  .card.special .foil { animation: none; }
+  .card.special::after { display: none; }
+  .card.special .sparkles { display: none; }
 }
+
+/* ---------- the Asso di Coppe moment ---------- */
+.asso-moment {
+  position: fixed; inset: 0; z-index: 20; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
+  background: radial-gradient(circle at center, rgba(60, 30, 0, 0.55), rgba(0, 0, 0, 0.8));
+  text-align: center; padding: 1rem;
+}
+.asso-moment p { margin: 0; font-size: 1.05rem; position: relative; }
+.asso-rays {
+  position: absolute; left: 50%; top: 45%; width: 180vmax; height: 180vmax; translate: -50% -50%;
+  background: repeating-conic-gradient(rgba(255, 210, 90, 0.22) 0deg 8deg, transparent 8deg 20deg);
+  mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  animation: rays 14s linear infinite;
+}
+@keyframes rays { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .asso-rays { animation: none; }
+}
+.asso-hero { position: relative; --card-w: min(38vw, 22vh, 170px); }
+.asso-title {
+  position: relative; margin: 0.3rem 0 0; font-size: clamp(1.8rem, 7vw, 3.2rem); color: var(--gold-light);
+  text-shadow: 0 2px 0 #8a5a00, 0 0 18px rgba(255, 200, 60, 0.8);
+}
+.confetti { position: absolute; top: 0; width: 9px; height: 14px; border-radius: 2px; }
+.confetti.round { width: 10px; height: 10px; border-radius: 50%; }
+
+.cookie-moment { background: radial-gradient(circle at center, rgba(70, 40, 10, 0.6), rgba(0, 0, 0, 0.82)); }
+.cookie-wrap { position: relative; display: grid; place-items: center; min-height: 150px; }
+button.cookie {
+  font-size: clamp(90px, 26vw, 140px); line-height: 1; padding: 0; border: 0; background: none; cursor: pointer;
+}
+.crumb { position: absolute; width: 7px; height: 7px; border-radius: 40%; background: #c68b4a; }
+.cookie-hint { font-size: 0.85rem; opacity: 0.7; }
 
 /* ---------- setup ---------- */
 .setup { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; text-align: center; }
