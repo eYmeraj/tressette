@@ -95,6 +95,7 @@ export function GameScreen({
     <AssoFlairContext.Provider value={assoFeature}>
       <div className="game">
         <section className="table">
+          <CoffeeStain />
           {pos.map((p, seat) =>
             seat === HUMAN ? null : (
               <Opponent key={seat} state={state} seat={seat} position={p} name={names[seat]} drawn={drawn} />
@@ -102,7 +103,6 @@ export function GameScreen({
           )}
 
           <div className="center">
-            <TableCrest />
             <Deck cards={deckCards(state)} />
             <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
           </div>
@@ -317,54 +317,46 @@ function LastTrick({ trick }: { trick?: CompletedTrick }) {
   );
 }
 
-/** Laurel stem (left half; mirrored for the right) and its leaves, paired along the curve. */
-const LAUREL_STEM = [
-  [-10, 60],
-  [-56, 50],
-  [-78, 12],
-  [-70, -30],
-] as const;
-const LAUREL_LEAVES = Array.from({ length: 7 }, (_, i) => {
-  const t = 0.12 + (i / 6) * 0.85;
-  const u = 1 - t;
-  const [p0, p1, p2, p3] = LAUREL_STEM;
-  const at = (k: 0 | 1) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k];
-  const slope = (k: 0 | 1) => 3 * u * u * (p1[k] - p0[k]) + 6 * u * t * (p2[k] - p1[k]) + 3 * t * t * (p3[k] - p2[k]);
-  const angle = (Math.atan2(slope(1), slope(0)) * 180) / Math.PI;
-  return { x: at(0), y: at(1), angle };
-});
-
-/** A faint crest printed on the felt, under the cards. */
-function TableCrest() {
-  const [p0, p1, p2, p3] = LAUREL_STEM;
+/**
+ * The ring an espresso cup left on the felt: an uneven dried edge, a fainter second ring where the cup was
+ * put down again, and a few drips. SVG noise filters roughen the shapes so they read as soaked into cloth.
+ */
+function CoffeeStain() {
   return (
-    <svg className="table-crest" viewBox="0 0 200 200" aria-hidden="true">
-      <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="100" cy="100" r="86" fill="none" stroke="currentColor" strokeWidth="0.75" />
-      {[-1, 1].map((side) => (
-        <g key={side} transform={`translate(100 100) scale(${-side} 1)`}>
-          <path d={`M ${p0} C ${p1} ${p2} ${p3}`} fill="none" stroke="currentColor" strokeWidth="1.2" />
-          {LAUREL_LEAVES.map(({ x, y, angle }, i) =>
-            [-35, 35].map((spread) => (
-              <ellipse
-                key={`${i}${spread}`}
-                cx={x}
-                cy={y}
-                rx="6"
-                ry="2.2"
-                transform={`rotate(${angle + spread} ${x} ${y}) translate(5 0)`}
-                fill="currentColor"
-              />
-            )),
-          )}
-        </g>
-      ))}
-      <text x="100" y="80" textAnchor="middle" className="table-crest-motto">
-        · tre · due · asso ·
-      </text>
-      <text x="100" y="110" textAnchor="middle" className="table-crest-name">
-        Tressette
-      </text>
+    <svg className="coffee-stain" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <filter id="stain-dry" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="7" result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="7" xChannelSelector="R" yChannelSelector="G" result="shape" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="11" result="blotch" />
+          <feColorMatrix in="blotch" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.3 0.15" result="patchy" />
+          <feComposite in="shape" in2="patchy" operator="in" />
+        </filter>
+        <filter id="stain-wash" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="3" result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="9" xChannelSelector="R" yChannelSelector="G" result="shape" />
+          <feGaussianBlur in="shape" stdDeviation="1.6" />
+        </filter>
+        <filter id="stain-edge" x="-50%" y="-50%" width="200%" height="200%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.3" numOctaves="2" seed="5" result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+      <g fill="none" stroke="currentColor">
+        <circle cx="96" cy="100" r="60" fill="currentColor" fillOpacity="0.08" stroke="none" filter="url(#stain-wash)" />
+        <circle cx="96" cy="100" r="62" strokeWidth="10" strokeOpacity="0.14" filter="url(#stain-wash)" />
+        <circle cx="96" cy="100" r="64.5" strokeWidth="3.4" strokeOpacity="0.6" filter="url(#stain-dry)" />
+        <circle cx="96" cy="100" r="62.5" strokeWidth="1.4" strokeOpacity="0.35" strokeDasharray="120 40 90 60" filter="url(#stain-dry)" />
+        <circle cx="113" cy="87" r="61" strokeWidth="2.6" strokeOpacity="0.38" strokeDasharray="170 400" strokeDashoffset="-30" filter="url(#stain-dry)" />
+        <circle cx="113" cy="87" r="58" strokeWidth="8" strokeOpacity="0.07" strokeDasharray="170 400" strokeDashoffset="-30" filter="url(#stain-wash)" />
+      </g>
+      <g fill="currentColor" filter="url(#stain-edge)">
+        <circle cx="167" cy="134" r="4.5" fillOpacity="0.4" />
+        <circle cx="176" cy="145" r="2.2" fillOpacity="0.35" />
+        <circle cx="159" cy="147" r="1.6" fillOpacity="0.35" />
+        <circle cx="183" cy="128" r="1.2" fillOpacity="0.3" />
+        <ellipse cx="35" cy="62" rx="3.2" ry="2.2" fillOpacity="0.3" />
+      </g>
     </svg>
   );
 }
