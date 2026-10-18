@@ -3,33 +3,20 @@
  *
  * Usage: npm run arena -- --a classic --b classic [--games 1000] [--players 2|4] [--target 31] [--seed 1]
  *
- * A bot can also be a trained network's weights file: --a neural:src/engine/ml/weights-2p.json
+ * Bots are named as in scripts/botspec.ts, e.g. --a neural:src/engine/ml/weights-2p.json. With --json it prints one
+ * line of totals instead (used by ml/gauntlet.py, which runs several seed ranges in parallel and adds them up).
  *
  * Each seed is played twice with the bots swapping sides (same shuffles, "duplicate" style), so luck of the
  * deal mostly cancels out and small differences in strength show up with fewer games.
  */
-import { readFileSync } from 'node:fs';
-import { basename } from 'node:path';
-import { BOTS, Bot, BotId, applyBotMove } from '../src/engine/bots';
-import { makeNeuralBot } from '../src/engine/bots/neural';
-import { MlpWeights, checkMlp } from '../src/engine/ml/mlp';
+import { Bot, applyBotMove } from '../src/engine/bots';
 import { GameConfig, GameState, collectAndDraw, dealNext, newGame, nextHand, teamOf } from '../src/engine/game';
 import { seededRng } from '../src/engine/random';
+import { botFromSpec } from './botspec';
 
 function arg(name: string, fallback: string): string {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
-}
-
-function bot(id: string): Bot {
-  if (id.startsWith('neural:')) {
-    const weights: MlpWeights = JSON.parse(readFileSync(id.slice('neural:'.length), 'utf8'));
-    const diff = checkMlp(weights);
-    if (diff > 1e-3) throw new Error(`${id} scores differ from PyTorch's by ${diff}`);
-    return makeNeuralBot(weights, `neural:${basename(id)}`);
-  }
-  if (!(id in BOTS)) throw new Error(`Unknown bot "${id}". Available: ${Object.keys(BOTS).join(', ')}`);
-  return BOTS[id as BotId];
 }
 
 /** Plays one full game; `bots[team]` plays every seat of that team. */
@@ -55,14 +42,16 @@ function playGame(config: GameConfig, bots: [Bot, Bot], seed: number) {
   return { winner: s.winner!, handPoints, hands };
 }
 
-const a = bot(arg('a', 'classic'));
-const b = bot(arg('b', 'classic'));
+const a = botFromSpec(arg('a', 'classic'));
+const b = botFromSpec(arg('b', 'classic'));
 const games = Number(arg('games', '1000'));
 const players = Number(arg('players', '2')) as 2 | 4;
 const config: GameConfig = { players, targetScore: Number(arg('target', '31')), accusi: false, signals: players === 4 };
 const firstSeed = Number(arg('seed', '1'));
 
 let aWins = 0;
+// Per seed: a's points minus b's over both games of the pair, for a confidence interval that uses the pairing.
+const pairMargins: number[] = [];
 let aPoints = 0;
 let bPoints = 0;
 let hands = 0;
@@ -75,7 +64,15 @@ for (let g = 0; g < games; g++) {
   if (result.winner === aTeam) aWins++;
   aPoints += result.handPoints[aTeam];
   bPoints += result.handPoints[1 - aTeam];
+  const m = result.handPoints[aTeam] - result.handPoints[1 - aTeam];
+  if (aTeam === 0) pairMargins.push(m);
+  else pairMargins[pairMargins.length - 1] += m;
   hands += result.hands;
+}
+
+if (process.argv.includes('--json')) {
+  console.log(JSON.stringify({ a: a.id, b: b.id, games, aWins, aPoints, bPoints, hands, pairMargins, ms: Date.now() - started }));
+  process.exit(0);
 }
 
 const rate = aWins / games;
