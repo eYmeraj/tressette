@@ -11,8 +11,12 @@
  *   z.f32     what our team actually ended the hand with, minus theirs
  * Positions with only one legal card are skipped. With --explore, that share of moves is a random legal card
  * (still saved with the bot's scores), so the data also covers positions the bot itself wouldn't reach.
+ *
+ * Safe to interrupt: meta.json is rewritten after every hand, and rerunning the same command carries on from the
+ * last finished hand (dropping any half-written rows). Every hand has its own seed, so the result is the same as
+ * an uninterrupted run. Rerunning with a larger --hands extends a finished run.
  */
-import { closeSync, mkdirSync, openSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, truncateSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { cardIndex } from '../src/engine/cards';
 import { GameConfig, GameState, collectAndDraw, dealNext, newGame, teamOf } from '../src/engine/game';
@@ -37,14 +41,40 @@ const explore = Number(arg('explore', '0.1'));
 const firstSeed = Number(arg('seed', '1'));
 const LAST_TRICK_BONUS = 3;
 
+const settings = { players, features: featureCount(players), actions: ACTIONS, samples, explore, seed: firstSeed };
+const rowBytes: Record<string, number> = { 'x.f32': 4 * settings.features, 'mask.u8': ACTIONS, 'q.f32': 4 * ACTIONS, 'z.f32': 4 };
+const metaPath = join(out, 'meta.json');
+
 mkdirSync(out, { recursive: true });
-const files = Object.fromEntries(['x.f32', 'mask.u8', 'q.f32', 'z.f32'].map((f) => [f, openSync(join(out, f), 'w')]));
+let rows = 0;
+let done = 0;
+if (existsSync(metaPath)) {
+  const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+  for (const [k, v] of Object.entries(settings)) {
+    if (meta[k] !== v) throw new Error(`${out} was made with ${k}=${meta[k]}, not ${v}: use another --out`);
+  }
+  ({ rows, hands: done } = meta);
+  console.log(`${out}: resuming after ${done} hands (${rows} rows)`);
+}
+// Drop rows written after the last meta.json (an interrupted hand), then append.
+const files = Object.fromEntries(
+  Object.keys(rowBytes).map((f) => {
+    const path = join(out, f);
+    if (existsSync(path)) truncateSync(path, rows * rowBytes[f]);
+    return [f, openSync(path, 'a')];
+  }),
+);
 const write = (file: string, data: Float32Array | Uint8Array) =>
   writeSync(files[file], new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+/** Written to a temporary file and renamed, so an interruption never leaves a half-written meta.json. */
+const saveMeta = (handsDone: number) => {
+  writeFileSync(`${metaPath}.tmp`, JSON.stringify({ ...settings, rows, hands: handsDone }, null, 2));
+  renameSync(`${metaPath}.tmp`, metaPath);
+};
 
-let rows = 0;
 const started = Date.now();
-for (let h = 0; h < hands; h++) {
+const startRows = rows;
+for (let h = done; h < hands; h++) {
   const seed = firstSeed * 1_000_003 + h;
   const rng = seededRng(seed);
   // Mix in accusi so the network sees cards revealed by them.
@@ -82,13 +112,10 @@ for (let h = 0; h < hands; h++) {
     write('z.f32', new Float32Array([total(d.team) - total(1 - d.team)]));
   }
   rows += decisions.length;
-  writeFileSync(
-    join(out, 'meta.json'),
-    JSON.stringify({ players, features: featureCount(players), actions: ACTIONS, rows, hands: h + 1, samples, explore }, null, 2),
-  );
+  saveMeta(h + 1);
   if ((h + 1) % 25 === 0 || h + 1 === hands) {
     const secs = (Date.now() - started) / 1000;
-    console.log(`${out}: ${h + 1}/${hands} hands, ${rows} rows, ${(rows / secs).toFixed(1)} rows/s`);
+    console.log(`${out}: ${h + 1}/${hands} hands, ${rows} rows, ${((rows - startRows) / secs).toFixed(1)} rows/s`);
   }
 }
 for (const fd of Object.values(files)) closeSync(fd);

@@ -5,3 +5,4 @@ ml/data
 ml/.venv
 ml/checkpoints
 __pycache__
+ml/logs
