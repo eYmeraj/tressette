@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { chooseMove } from './engine/bot';
+import { applyBotMove, botFor } from './engine/bots';
 import {
   GameState, Signal, callAccusi, collectTrick, dealNext, newGame, nextHand, playCard,
 } from './engine/game';
@@ -17,10 +17,7 @@ function dealAll(s: GameState): GameState {
 
 function botStep(s: GameState): GameState {
   if (s.phase !== 'playing' || s.turn === HUMAN) return s;
-  const seat = s.turn;
-  const move = chooseMove(s, seat);
-  const called = move.callAccusi ? callAccusi(s, seat) : s;
-  return playCard(called, seat, move.cardId, move.signal);
+  return applyBotMove(s, botFor(s.config));
 }
 
 /**

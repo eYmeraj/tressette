@@ -8,6 +8,7 @@ npm install
 npm run dev     # http://localhost:5173
 npm test        # engine tests, including full simulated games
 npm run build
+npm run arena -- --a classic --b classic --games 2000 --players 2   # compare two bots
 ```
 
 ## Layout
@@ -16,7 +17,9 @@ npm run build
   - `cards.ts` deck, strength order (3 2 A R C F 7 6 5 4), point values in thirds
   - `rules.ts` follow-suit, trick winner, accusi detection
   - `game.ts` immutable state machine: `newGame → playCard → collectTrick → nextHand`
-  - `bot.ts` heuristic AI using only information a real player would have
+  - `view.ts` `SeatView`: what one seat may know (its hand, public play); the only thing bots see
+  - `bots/` the bot interface and registry (`BOTS`, chosen at setup); `classic.ts` is the rule-of-thumb bot
+  - `random.ts` seeded RNG for replayable simulations
 - `src/components/` — React UI (`Card.tsx` renders cards; images live in `public/cards/` and `public/cards-illustrated/`)
 - `src/useGame.ts` — wires the engine to React and paces the bots
 
