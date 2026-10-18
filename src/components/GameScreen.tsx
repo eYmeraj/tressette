@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, Variants, motion } from 'framer-motion';
-import { Card, sortHand } from '../engine/cards';
-import { trickWinnerIndex } from '../engine/rules';
+import { Card, isAssoDiCoppe, sortHand } from '../engine/cards';
 import {
-  CompletedTrick, GameConfig, GameState, Signal, availableAccusi, canSignal, deckCards, legalMoves, teamOf, visibleHand,
+  CompletedTrick, GameConfig, GameState, Play, Signal, availableAccusi, canSignal, deckCards, legalMoves, teamOf,
+  trickWinner, visibleHand, winningPlayIndex,
 } from '../engine/game';
 import { HUMAN, useGame } from '../useGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
 import { CardArt, CardView } from './Card';
+import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
 import { Hand } from './Hand';
 
@@ -47,8 +48,14 @@ export function GameScreen({
   onQuit: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Bots and trick timers wait while the settings dialog is open.
-  const game = useGame(config, settingsOpen);
+  // The trick whose Asso di Coppe moment has been shown. Each trick is a new array, so a new game never matches.
+  const [assoShown, setAssoShown] = useState<Play[] | null>(null);
+  const holdForAsso = useCallback(
+    (s: GameState) => s.phase === 'trickComplete' && s.trick !== assoShown && s.trick.some((p) => isAssoDiCoppe(p.card)),
+    [assoShown],
+  );
+  // Everything waits while the settings dialog is open; a trick with the Asso di Coppe stays until its moment ends.
+  const game = useGame(config, settingsOpen, holdForAsso);
   const { state } = game;
   // A signal choice belongs to one lead; picking it for an earlier trick or hand doesn't carry over.
   const leadKey = `${state.handNumber}:${state.tricks.length}`;
@@ -66,6 +73,11 @@ export function GameScreen({
   const setSignal = (sig: Signal | null) => setPicked(sig && { signal: sig, leadKey });
   const lastTrick = state.tricks.at(-1);
   const drawn = lastDraws(state);
+
+  // When the trick holding the Asso di Coppe is complete, celebrate it (or console the player) once.
+  const assoPending = holdForAsso(state);
+  const assoWon = assoPending && teamOf(config, trickWinner(state.trick)) === teamOf(config, HUMAN);
+  const closeAsso = useCallback(() => setAssoShown(state.trick), [state.trick]);
 
   const play = (cardId: string) => {
     game.play(cardId, signal ?? undefined);
@@ -157,6 +169,10 @@ export function GameScreen({
         <Settings art={art} onArtChange={onArtChange} onClose={() => setSettingsOpen(false)} onQuit={onQuit} />
       )}
 
+      <AnimatePresence>
+        {assoPending && <AssoDiCoppeMoment key={leadKey} won={assoWon} onDone={closeAsso} />}
+      </AnimatePresence>
+
       {(state.phase === 'handOver' || state.phase === 'gameOver') && (
         <HandSummary state={state} teams={teams} onNext={state.phase === 'handOver' ? game.nextHand : game.restart} />
       )}
@@ -173,7 +189,7 @@ function TrickArea({
   positions: Position[];
   lastTrick?: CompletedTrick;
 }) {
-  const winner = state.phase === 'trickComplete' ? trickWinnerIndex(state.trick.map((p) => p.card)) : -1;
+  const winner = state.phase === 'trickComplete' ? winningPlayIndex(state.trick) : -1;
   return (
     <div className="trick">
       <AnimatePresence custom={TOWARDS[pos[lastTrick?.winner ?? 0]]}>
@@ -277,7 +293,7 @@ function Opponent({
 /** A small, quiet reminder of the previous trick; the winning card is outlined. */
 function LastTrick({ trick }: { trick?: CompletedTrick }) {
   if (!trick) return null;
-  const winner = trickWinnerIndex(trick.plays.map((p) => p.card));
+  const winner = winningPlayIndex(trick.plays);
   return (
     <div className="last-hand" aria-label="Last hand">
       <span>Last hand</span>

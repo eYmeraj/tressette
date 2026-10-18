@@ -26,7 +26,7 @@ export function Setup({
       <h1>Tressette</h1>
       <div className="setup-cards">
         {PREVIEW.map((c) => (
-          <CardView key={c.id} card={c} />
+          <CardView key={c.id} card={c} plain />
         ))}
       </div>
 

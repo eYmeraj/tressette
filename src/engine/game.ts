@@ -181,11 +181,21 @@ export function playCard(s: GameState, seat: number, cardId: string, signal?: Si
   };
 }
 
+/** Position in the trick of the play that takes it. */
+export function winningPlayIndex(trick: Play[]): number {
+  return trickWinnerIndex(trick.map((p) => p.card));
+}
+
+/** The seat whose card takes the trick. */
+export function trickWinner(trick: Play[]): number {
+  return trick[winningPlayIndex(trick)].seat;
+}
+
 /** Awards the finished trick; in the 2-player game the winner then the loser draw from the stock. */
 export function collectTrick(s: GameState): GameState {
   if (s.phase !== 'trickComplete') throw new Error('No completed trick to collect');
   const n = s.config.players;
-  const winner = s.trick[trickWinnerIndex(s.trick.map((p) => p.card))].seat;
+  const winner = trickWinner(s.trick);
   const events: GameEvent[] = [
     ...s.events,
     { type: 'trick', winner, thirds: s.trick.reduce((sum, p) => sum + thirds(p.card), 0) },
