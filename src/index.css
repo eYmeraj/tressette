@@ -12,7 +12,14 @@
   --card-h: calc(var(--card-w) * 545 / 300);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--cream);
-  background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%) fixed;
+  /* Felt: a fine woven texture under a soft vignette, like a well-used card table. */
+  background:
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.35) 100%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
+  background-attachment: fixed;
+  --hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
 }
 
 * { box-sizing: border-box; }
@@ -195,6 +202,7 @@ button.cookie {
 /* ---------- game layout ---------- */
 .game { display: grid; min-height: 100vh; }
 .table {
+  position: relative;
   display: grid;
   grid-template-areas: '. top .' 'left center right' 'bottom bottom bottom';
   grid-template-columns: auto 1fr auto;
@@ -221,6 +229,23 @@ button.cookie {
 
 /* Positioning uses the individual translate/rotate properties: Framer Motion owns `transform`. */
 .center { grid-area: center; position: relative; min-height: calc(var(--card-h) * 2.25); }
+/* A thin gold pinstripe framing the playing area, and the ghost of a wine glass someone put down on the felt. */
+.table::before {
+  content: ''; position: absolute; inset: 0.6rem; pointer-events: none;
+  border: 1px solid rgba(227, 165, 28, 0.28); border-radius: 18px;
+  box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.08), inset 0 0 0 5px rgba(227, 165, 28, 0.12);
+}
+.table::after {
+  content: ''; position: absolute; left: 7%; bottom: 22%; width: 74px; height: 70px; pointer-events: none;
+  border-radius: 50%; rotate: -12deg;
+  background: radial-gradient(closest-side, transparent 80%, rgba(110, 20, 30, 0.22) 86%, rgba(110, 20, 30, 0.08) 93%, transparent 100%);
+}
+.table-crest {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%; pointer-events: none;
+  width: min(calc(var(--card-h) * 2), 80%); height: auto; color: var(--gold); opacity: 0.13;
+}
+.table-crest-name { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 21px; fill: currentColor; }
+.table-crest-motto { font-family: Georgia, 'Times New Roman', serif; font-size: 8px; letter-spacing: 0.25em; fill: currentColor; }
 .trick { position: absolute; inset: 0; }
 .played { position: absolute; left: 50%; top: 50%; }
 .played-bottom { translate: -50% 6%; }
@@ -269,16 +294,20 @@ button.cookie {
 /* ---------- score & settings ---------- */
 .hud { position: fixed; top: 1rem; right: 1rem; display: flex; align-items: flex-start; gap: 0.5rem; z-index: 5; }
 .scoreboard {
-  min-width: 9.5rem; padding: 0.5rem 0.75rem; border-radius: 10px;
-  background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(251, 246, 232, 0.2);
+  /* A scrap of ruled paper with the score kept in pen, as at the bar. */
+  min-width: 9.5rem; padding: 0.35rem 0.8rem 0.45rem; border-radius: 2px; rotate: -1.5deg;
+  color: #3a2b1c; font-family: var(--hand); font-size: 1.15rem; line-height: 1.5rem;
+  background: repeating-linear-gradient(transparent 0 calc(1.5rem - 1px), rgba(70, 110, 170, 0.25) calc(1.5rem - 1px) 1.5rem) 0 0.35rem / 100% 100% no-repeat, #f4ecd6;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
   font-variant-numeric: tabular-nums;
 }
 .score-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
-.score-row span::before { content: ''; display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%; margin-right: 0.45em; background: currentColor; }
+.score-row span::before { content: ''; display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%; margin-right: 0.45em; background: currentColor; box-shadow: 0 0 0 1px rgba(58, 43, 28, 0.45); }
 .score-row.team-0 span::before { color: var(--team-0); }
 .score-row.team-1 span::before { color: var(--team-1); }
-.score-row strong { font-size: 1.25rem; }
-.score-meta { margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7; }
+.score-row strong { font-size: 1.35rem; color: #8b1d1d; }
+.score-title { font-size: 0.95rem; text-align: center; letter-spacing: 0.08em; border-bottom: 1px solid rgba(139, 29, 29, 0.45); }
+.score-meta { font-size: 0.95rem; opacity: 0.75; }
 .hud-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
 .last-hand { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; opacity: 0.75; transition: opacity 0.15s ease; }
 .last-hand:hover { opacity: 1; }
@@ -314,11 +343,12 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
   .game { grid-template-rows: auto 1fr; }
   .hud { position: static; order: -1; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem 0; }
   .hud-panel { flex-direction: row; align-items: center; gap: 0.6rem; min-width: 0; }
-  .scoreboard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.15rem 0.75rem; min-width: 0; padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+  .scoreboard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 0.75rem; min-width: 0; padding: 0.15rem 0.6rem; font-size: 1rem; rotate: none; }
+  .score-title { display: none; }
   .score-row { gap: 0.4rem; }
   .score-row strong { font-size: 1rem; }
   .score-meta { margin-top: 0; }
-  .last-trick span { display: none; }
+  .last-hand span { display: none; }
   .card.mini { width: 24px; }
   /* Bigger cards in hand on small screens: they are what the player touches. */
   .hand { --card-w: clamp(56px, min(16vw, 20vh), 92px); }
