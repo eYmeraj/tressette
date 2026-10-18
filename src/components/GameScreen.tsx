@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, Variants, motion } from 'framer-motion';
 import { Card, sortHand } from '../engine/cards';
 import { trickWinnerIndex } from '../engine/rules';
@@ -6,7 +6,7 @@ import {
   CompletedTrick, GameConfig, GameState, Signal, availableAccusi, canSignal, deckCards, legalMoves, teamOf, visibleHand,
 } from '../engine/game';
 import { HUMAN, useGame } from '../useGame';
-import { SIGNALS, describeEvent, seatNames, teamNames } from '../labels';
+import { SIGNALS, seatNames, teamNames } from '../labels';
 import { CardView } from './Card';
 
 type Position = 'bottom' | 'right' | 'top' | 'left';
@@ -34,7 +34,9 @@ const collectVariants: Variants = {
 };
 
 export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () => void }) {
-  const game = useGame(config);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Bots and trick timers wait while the settings dialog is open.
+  const game = useGame(config, settingsOpen);
   const { state } = game;
   // A signal choice belongs to one lead; picking it for an earlier trick or hand doesn't carry over.
   const leadKey = `${state.handNumber}:${state.tricks.length}`;
@@ -122,31 +124,25 @@ export function GameScreen({ config, onQuit }: { config: GameConfig; onQuit: () 
         </div>
       </section>
 
-      <aside className="sidebar">
-        <div className="scores">
-          {teams.map((t, i) => (
-            <div key={t} className={`score team-${i}`}>
-              <span>{t}</span>
-              <strong>{state.scores[i]}</strong>
-            </div>
-          ))}
-          <div className="meta">
-            Hand {state.handNumber} · playing to {config.targetScore}
-          </div>
-        </div>
-
-        <LastTrick trick={lastTrick} names={names} />
-
-        <ol className="log" reversed>
-          {[...state.events].reverse().map((e, i) => (
-            <li key={state.events.length - i}>{describeEvent(e, names, teams)}</li>
-          ))}
-        </ol>
-
-        <button type="button" onClick={onQuit}>
-          New game
+      <div className="hud">
+        <Scoreboard state={state} teams={teams} />
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Settings"
+          title="Settings"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"
+            />
+          </svg>
         </button>
-      </aside>
+      </div>
+
+      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onQuit={onQuit} />}
 
       {(state.phase === 'handOver' || state.phase === 'gameOver') && (
         <HandSummary state={state} teams={teams} onNext={state.phase === 'handOver' ? game.nextHand : game.restart} />
@@ -244,16 +240,50 @@ function Opponent({
   );
 }
 
-function LastTrick({ trick: last, names }: { trick?: CompletedTrick; names: string[] }) {
-  if (!last) return null;
+function Scoreboard({ state, teams }: { state: GameState; teams: [string, string] }) {
   return (
-    <div className="last-trick">
-      <h3>Last trick — {names[last.winner]}</h3>
-      <div className="mini-cards">
-        {last.plays.map((p) => (
-          <CardView key={p.card.id} card={p.card} className="mini" />
-        ))}
+    <div className="scoreboard" aria-label="Score">
+      {teams.map((t, i) => (
+        <div key={t} className={`score-row team-${i}`}>
+          <span>{t}</span>
+          <strong>{state.scores[i]}</strong>
+        </div>
+      ))}
+      <div className="score-meta">
+        Hand {state.handNumber} · to {state.config.targetScore}
       </div>
+    </div>
+  );
+}
+
+function Settings({ onClose, onQuit }: { onClose: () => void; onQuit: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <motion.div
+        className="modal settings"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="settings-title">Settings</h2>
+        <p>The game is paused.</p>
+        <div className="modal-actions">
+          <button type="button" className="danger" onClick={onQuit}>
+            Quit game
+          </button>
+          <button type="button" className="primary" onClick={onClose} autoFocus>
+            Resume
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
