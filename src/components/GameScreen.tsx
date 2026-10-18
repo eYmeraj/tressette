@@ -102,6 +102,7 @@ export function GameScreen({
           )}
 
           <div className="center">
+            <TableCrest />
             <Deck cards={deckCards(state)} />
             <TrickArea state={state} positions={pos} lastTrick={lastTrick} />
           </div>
@@ -316,9 +317,62 @@ function LastTrick({ trick }: { trick?: CompletedTrick }) {
   );
 }
 
+/** Laurel stem (left half; mirrored for the right) and its leaves, paired along the curve. */
+const LAUREL_STEM = [
+  [-10, 60],
+  [-56, 50],
+  [-78, 12],
+  [-70, -30],
+] as const;
+const LAUREL_LEAVES = Array.from({ length: 7 }, (_, i) => {
+  const t = 0.12 + (i / 6) * 0.85;
+  const u = 1 - t;
+  const [p0, p1, p2, p3] = LAUREL_STEM;
+  const at = (k: 0 | 1) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k];
+  const slope = (k: 0 | 1) => 3 * u * u * (p1[k] - p0[k]) + 6 * u * t * (p2[k] - p1[k]) + 3 * t * t * (p3[k] - p2[k]);
+  const angle = (Math.atan2(slope(1), slope(0)) * 180) / Math.PI;
+  return { x: at(0), y: at(1), angle };
+});
+
+/** A faint crest printed on the felt, under the cards. */
+function TableCrest() {
+  const [p0, p1, p2, p3] = LAUREL_STEM;
+  return (
+    <svg className="table-crest" viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="100" cy="100" r="86" fill="none" stroke="currentColor" strokeWidth="0.75" />
+      {[-1, 1].map((side) => (
+        <g key={side} transform={`translate(100 100) scale(${-side} 1)`}>
+          <path d={`M ${p0} C ${p1} ${p2} ${p3}`} fill="none" stroke="currentColor" strokeWidth="1.2" />
+          {LAUREL_LEAVES.map(({ x, y, angle }, i) =>
+            [-35, 35].map((spread) => (
+              <ellipse
+                key={`${i}${spread}`}
+                cx={x}
+                cy={y}
+                rx="6"
+                ry="2.2"
+                transform={`rotate(${angle + spread} ${x} ${y}) translate(5 0)`}
+                fill="currentColor"
+              />
+            )),
+          )}
+        </g>
+      ))}
+      <text x="100" y="80" textAnchor="middle" className="table-crest-motto">
+        · tre · due · asso ·
+      </text>
+      <text x="100" y="110" textAnchor="middle" className="table-crest-name">
+        Tressette
+      </text>
+    </svg>
+  );
+}
+
 function Scoreboard({ state, teams }: { state: GameState; teams: [string, string] }) {
   return (
     <div className="scoreboard" aria-label="Score">
+      <div className="score-title">Punti</div>
       {teams.map((t, i) => (
         <div key={t} className={`score-row team-${i}`}>
           <span>{t}</span>
