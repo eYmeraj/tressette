@@ -26,3 +26,16 @@ npm run build
 - Accusi before your first card: Napoletana (A-2-3 same suit) 3, three Assi/2s/3s 3, four 4.
 - 4-player signals on the lead card: Busso, Volo, Striscio.
 - First team to the target (21/31/41) wins; a tie keeps playing.
+
+## Deploying
+
+Every push to `feature/tressette-game` runs the tests, builds the site and publishes it to GitHub Pages
+(`.github/workflows/deploy.yml`; it can also be run by hand from the Actions tab).
+
+`npm run build` produces a static site in `dist/` that any static host can serve.
+To run it in a container instead:
+
+```sh
+docker build -t tressette .
+docker run -p 8080:80 tressette   # http://localhost:8080
+```
