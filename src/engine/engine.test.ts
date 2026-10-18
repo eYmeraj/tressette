@@ -2,19 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { makeCard, newDeck, thirds } from './cards';
 import { findAccusi, legalCards, trickWinnerIndex } from './rules';
 import {
-  GameConfig, GameState, callAccusi, collectTrick, dealNext, deckCards, legalMoves, newGame, nextHand, playCard, visibleHand,
+  GameConfig, GameState, collectTrick, dealNext, deckCards, legalMoves, newGame, nextHand, visibleHand,
 } from './game';
-import { chooseMove } from './bot';
-
-/** Deterministic PRNG so failures are reproducible. */
-function mulberry32(seed: number) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import { BOTS, applyBotMove } from './bots';
+import { seatView } from './view';
+import { seededRng } from './random';
 
 describe('cards', () => {
   it('has 40 unique cards worth 32 thirds', () => {
@@ -54,7 +46,7 @@ describe('rules', () => {
 
 describe('dealing', () => {
   it.each([2, 4] as const)('hands out cards round-robin from the deck with %i players', (players) => {
-    let s = newGame({ players, targetScore: 31, accusi: false, signals: false }, mulberry32(7));
+    let s = newGame({ players, targetScore: 31, accusi: false, signals: false }, seededRng(7));
     const total = players * 10;
     expect(deckCards(s)).toHaveLength(40);
     expect(legalMoves(s, s.turn)).toEqual([]);
@@ -71,7 +63,7 @@ describe('dealing', () => {
 });
 
 function playOut(config: GameConfig, seed: number): GameState[] {
-  const rng = mulberry32(seed);
+  const rng = seededRng(seed);
   let s = newGame(config, rng);
   const finished: GameState[] = [];
   for (let steps = 0; steps < 10_000; steps++) {
@@ -84,10 +76,9 @@ function playOut(config: GameConfig, seed: number): GameState[] {
     } else if (s.phase === 'trickComplete') {
       s = collectTrick(s);
     } else {
-      const move = chooseMove(s, s.turn);
-      expect(legalMoves(s, s.turn).some((c) => c.id === move.cardId)).toBe(true);
-      if (move.callAccusi) s = callAccusi(s, s.turn);
-      s = playCard(s, s.turn, move.cardId, move.signal);
+      const before = s;
+      s = applyBotMove(s, BOTS.classic, rng);
+      expect(s.hands[before.turn]).toHaveLength(before.hands[before.turn].length - 1);
     }
   }
   throw new Error('Game did not finish');
@@ -115,7 +106,7 @@ describe.each([
 
 describe('bot signals', () => {
   it('takes the trick with its best card when the partner knocks, even over the partner', () => {
-    const base = newGame({ players: 4, targetScore: 31, accusi: false, signals: true }, mulberry32(3));
+    const base = newGame({ players: 4, targetScore: 31, accusi: false, signals: true }, seededRng(3));
     const s: GameState = {
       ...base,
       phase: 'playing',
@@ -127,6 +118,17 @@ describe('bot signals', () => {
         { seat: 3, card: makeCard('coppe', 4) },
       ],
     };
-    expect(chooseMove(s, 0).cardId).toBe('3-coppe');
+    expect(BOTS.classic.chooseMove(seatView(s, 0), Math.random).cardId).toBe('3-coppe');
+  });
+});
+
+describe('seat view', () => {
+  it("shows a seat its own hand and only the size of everyone else's", () => {
+    let s = newGame({ players: 4, targetScore: 31, accusi: false, signals: true }, seededRng(5));
+    while (s.phase === 'dealing') s = dealNext(s);
+    const v = seatView(s, 1);
+    expect(v.hand).toEqual(s.hands[1]);
+    expect(v.handSizes).toEqual([10, 10, 10, 10]);
+    expect(JSON.stringify(v)).not.toContain(s.hands[0][0].id);
   });
 });

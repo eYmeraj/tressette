@@ -1,32 +1,29 @@
-import { Card, Suit, newDeck, strength, thirds } from './cards';
-import { trickWinnerIndex } from './rules';
-import { GameState, Signal, availableAccusi, canSignal, legalMoves, teamOf } from './game';
-
-export interface BotMove {
-  cardId: string;
-  signal?: Signal;
-  callAccusi: boolean;
-}
+import { Card, Suit, newDeck, strength, thirds } from '../cards';
+import { trickWinnerIndex } from '../rules';
+import { Signal, canSignal, teamOf } from '../game';
+import { SeatView, accusiFor, legalPlays } from '../view';
+import type { BotMove } from '.';
 
 /**
  * Heuristic player. It only uses information a real player has: its own hand,
  * the cards already played, and its partner's signals.
  */
-export function chooseMove(s: GameState, seat: number): BotMove {
-  const legal = legalMoves(s, seat);
+export function classicMove(s: SeatView): BotMove {
+  const { seat } = s;
+  const legal = legalPlays(s);
   if (!legal.length) throw new Error(`Seat ${seat} cannot play now`);
-  const callAccusi = availableAccusi(s, seat).length > 0;
-  const unseen = unseenCards(s, seat);
+  const callAccusi = accusiFor(s).length > 0;
+  const unseen = unseenCards(s);
 
   if (s.trick.length > 0) return { cardId: chooseFollow(s, seat, legal, unseen).id, callAccusi };
 
   const card = chooseLead(s, seat, unseen);
-  const signal = canSignal(s, seat) ? chooseSignal(s.hands[seat], card, unseen) : undefined;
+  const signal = canSignal(s, seat) ? chooseSignal(s.hand, card, unseen) : undefined;
   return { cardId: card.id, signal, callAccusi };
 }
 
-function unseenCards(s: GameState, seat: number): Card[] {
-  const seen = new Set(s.hands[seat].map((c) => c.id));
+function unseenCards(s: SeatView): Card[] {
+  const seen = new Set(s.hand.map((c) => c.id));
   for (const t of s.tricks) for (const p of t.plays) seen.add(p.card.id);
   for (const p of s.trick) seen.add(p.card.id);
   return newDeck().filter((c) => !seen.has(c.id));
@@ -58,8 +55,8 @@ function feedValue(card: Card): number {
   return strength(card);
 }
 
-function chooseLead(s: GameState, seat: number, unseen: Card[]): Card {
-  const hand = s.hands[seat];
+function chooseLead(s: SeatView, seat: number, unseen: Card[]): Card {
+  const hand = s.hand;
 
   // Cash a master Asso, or clear the way for one with a master 3/2 of the same suit.
   const masterAce = hand.find((c) => c.rank === 1 && isMaster(c, unseen));
@@ -102,7 +99,7 @@ function leadFromSuit(cards: Card[]): Card {
 }
 
 /** In the 2-player game drawn cards are shown face up, so we know some of the opponent's hand. */
-function knownOpponentCards(s: GameState, seat: number): Card[] {
+function knownOpponentCards(s: SeatView, seat: number): Card[] {
   const played = new Set(s.tricks.flatMap((t) => t.plays.map((p) => p.card.id)));
   for (const p of s.trick) played.add(p.card.id);
   return s.events.flatMap((e) =>
@@ -118,7 +115,7 @@ function chooseSignal(hand: Card[], led: Card, unseen: Card[]): Signal | undefin
   return undefined;
 }
 
-function chooseFollow(s: GameState, seat: number, legal: Card[], unseen: Card[]): Card {
+function chooseFollow(s: SeatView, seat: number, legal: Card[], unseen: Card[]): Card {
   const { config, trick } = s;
   const leadSuit = trick[0].card.suit;
   const winning = trick[trickWinnerIndex(trick.map((p) => p.card))];

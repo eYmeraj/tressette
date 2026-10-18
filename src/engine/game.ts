@@ -1,5 +1,6 @@
 import { Card, Suit, newDeck, shuffle, thirds } from './cards';
 import { Accuso, findAccusi, legalCards, trickWinnerIndex } from './rules';
+import type { BotId } from './bots';
 
 export type Signal = 'busso' | 'volo' | 'striscio';
 
@@ -9,6 +10,8 @@ export interface GameConfig {
   accusi: boolean;
   /** Only meaningful with 4 players: the trick leader may signal their partner. */
   signals: boolean;
+  /** Which bot plays the other seats (see BOTS); missing in games saved before bots were selectable. */
+  bot?: BotId;
 }
 
 export interface Play {
@@ -156,7 +159,7 @@ export function legalMoves(s: GameState, seat: number): Card[] {
   return legalCards(s.hands[seat], s.trick[0]?.card.suit ?? null);
 }
 
-export function canSignal(s: GameState, seat: number): boolean {
+export function canSignal(s: Pick<GameState, 'config' | 'phase' | 'turn' | 'trick'>, seat: number): boolean {
   return (
     s.config.signals && s.config.players === 4 && s.phase === 'playing' && s.turn === seat && s.trick.length === 0
   );

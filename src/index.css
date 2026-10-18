@@ -187,6 +187,7 @@ button.cookie {
 .setup-form label { display: block; padding: 0.25rem 0; }
 .setup-form label.inline { display: inline-block; margin-right: 1.25rem; }
 .setup-form label.disabled { opacity: 0.5; }
+.bot-difficulty { font-size: 0.75rem; padding: 0.05em 0.5em; border-radius: 999px; border: 1px solid rgba(251, 246, 232, 0.4); }
 .setup-form > button { justify-self: center; }
 .setup-form .primary { justify-self: center; font-size: 1.15rem; padding: 0.6em 2.5em; }
 .art-picker { display: flex; justify-content: center; gap: 1.5rem; padding: 0.25rem 0; }

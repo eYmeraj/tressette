@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SUITS, makeCard } from '../engine/cards';
 import { GameConfig, GameState } from '../engine/game';
+import { BOTS, BotId, DEFAULT_BOT, botFor } from '../engine/bots';
 import { teamNames } from '../labels';
 import { CardArt, CardView } from './Card';
 import { CardArtPicker } from './CardArtPicker';
@@ -26,6 +27,7 @@ export function Setup({
   const [targetScore, setTarget] = useState(31);
   const [accusi, setAccusi] = useState(false);
   const [signals, setSignals] = useState(true);
+  const [bot, setBot] = useState<BotId>(DEFAULT_BOT);
 
   return (
     <main className="setup">
@@ -42,7 +44,7 @@ export function Setup({
         className="setup-form"
         onSubmit={(e) => {
           e.preventDefault();
-          onStart({ players, targetScore, accusi, signals: players === 4 && signals });
+          onStart({ players, targetScore, accusi, signals: players === 4 && signals, bot });
         }}
       >
         <fieldset>
@@ -60,6 +62,16 @@ export function Setup({
           {[21, 31, 41].map((t) => (
             <label key={t} className="inline">
               <input type="radio" name="target" checked={targetScore === t} onChange={() => setTarget(t)} /> {t}
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset>
+          <legend>Opponents</legend>
+          {Object.values(BOTS).map((b) => (
+            <label key={b.id}>
+              <input type="radio" name="bot" checked={bot === b.id} onChange={() => setBot(b.id)} /> {b.name}{' '}
+              <span className="bot-difficulty">{b.difficulty}</span> — {b.description}
             </label>
           ))}
         </fieldset>
@@ -115,7 +127,7 @@ function ContinueGame({ saved, onContinue }: { saved: GameState; onContinue: () 
         Continue game
       </button>
       <p>
-        {saved.config.players} players · {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand{' '}
+        {saved.config.players} players vs {botFor(saved.config).name} · {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand{' '}
         {saved.handNumber}
       </p>
     </section>
