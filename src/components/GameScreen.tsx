@@ -6,6 +6,7 @@ import {
   trickWinner, visibleHand, winningPlayIndex,
 } from '../engine/game';
 import { HUMAN, useGame } from '../useGame';
+import { clearSavedGame, saveGame } from '../savedGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
 import { AssoFlairContext, CardArt, CardView } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
@@ -37,16 +38,18 @@ const collectVariants: Variants = {
 };
 
 export function GameScreen({
-  config,
+  start,
   art,
   onArtChange,
   onQuit,
 }: {
-  config: GameConfig;
+  /** A freshly dealt game or one restored from the save. */
+  start: GameState;
   art: CardArt;
   onArtChange?: (art: CardArt) => void;
   onQuit: () => void;
 }) {
+  const { config } = start;
   const [settingsOpen, setSettingsOpen] = useState(false);
   // The Asso di Coppe's flair and its moment belong to the 2-player game only.
   const assoFeature = config.players === 2;
@@ -58,8 +61,10 @@ export function GameScreen({
     [assoFeature, assoShown],
   );
   // Everything waits while the settings dialog is open; a trick with the Asso di Coppe stays until its moment ends.
-  const game = useGame(config, settingsOpen, holdForAsso);
+  const game = useGame(start, settingsOpen, holdForAsso);
   const { state } = game;
+  // Every move is saved so the player can close the page and come back; a finished game is forgotten.
+  useEffect(() => (state.phase === 'gameOver' ? clearSavedGame() : saveGame(state)), [state]);
   // A signal choice belongs to one lead; picking it for an earlier trick or hand doesn't carry over.
   const leadKey = `${state.handNumber}:${state.tricks.length}`;
   const [picked, setPicked] = useState<{ signal: Signal; leadKey: string } | null>(null);

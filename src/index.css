@@ -172,11 +172,15 @@ button.cookie {
 .setup-cards .card:nth-child(3) { rotate: 3deg; translate: 0 -6px; }
 .setup-cards .card:nth-child(4) { rotate: 8deg; }
 .setup-form { display: grid; gap: 1rem; text-align: left; }
+.continue { display: grid; justify-items: center; gap: 0.4rem; margin-bottom: 1.5rem; }
+.continue .primary { font-size: 1.15rem; padding: 0.6em 2.5em; }
+.continue p { margin: 0; font-size: 0.9rem; opacity: 0.8; }
 .setup-form fieldset { border: 1px solid rgba(251, 246, 232, 0.25); border-radius: 8px; padding: 0.75rem 1rem; }
 .setup-form legend { color: var(--gold); padding: 0 0.4em; }
 .setup-form label { display: block; padding: 0.25rem 0; }
 .setup-form label.inline { display: inline-block; margin-right: 1.25rem; }
 .setup-form label.disabled { opacity: 0.5; }
+.setup-form > button { justify-self: center; }
 .setup-form .primary { justify-self: center; font-size: 1.15rem; padding: 0.6em 2.5em; }
 .art-picker { display: flex; justify-content: center; gap: 1.5rem; padding: 0.25rem 0; }
 .setup-form .art-option, .art-option { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; }
