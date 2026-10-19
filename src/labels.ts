@@ -1,11 +1,19 @@
 import { GameConfig, Signal } from './engine/game';
+import { Bot, botFor } from './engine/bots';
+
+/** The opponent you face: Endi, older the stronger the bot. */
+export function endiName(bot: Bot): string {
+  return `${bot.age}yo Endi`;
+}
 
 export function seatNames(config: GameConfig): string[] {
-  return config.players === 4 ? ['You', 'Very young Endi', 'Giulia', 'Marco'] : ['You', 'Very young Endi'];
+  const endi = endiName(botFor(config));
+  return config.players === 4 ? ['You', endi, 'Giulia', 'Marco'] : ['You', endi];
 }
 
 export function teamNames(config: GameConfig): [string, string] {
-  return config.players === 4 ? ['You & Giulia', 'Very young Endi & Marco'] : ['You', 'Very young Endi'];
+  const endi = endiName(botFor(config));
+  return config.players === 4 ? ['You & Giulia', `${endi} & Marco`] : ['You', endi];
 }
 
 export const SIGNALS: Record<Signal, { label: string; help: string }> = {

@@ -12,6 +12,8 @@ export interface Bot {
   name: string;
   /** Shown on the setup screen. */
   label: string;
+  /** Endi's age when playing as this bot: the opponent is called "<age>yo Endi". */
+  age: number;
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
   description: string;
   /** The game sizes it can play; any if omitted. */
