@@ -6,3 +6,5 @@ ml/.venv
 ml/checkpoints
 __pycache__
 ml/logs
+ml/models
+ml/loop

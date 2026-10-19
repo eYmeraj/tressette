@@ -1,13 +1,13 @@
 /**
- * Self-play data for the ML bot: the Stats bot plays every seat, and each decision it makes is saved with its
- * score for every legal card, so a network can learn to score cards the same way.
+ * Self-play data for the ML bot: a teacher (by default the Stats bot's search) plays every seat, and each decision it
+ * makes is saved with its score for every legal card, so a network can learn to score cards the same way.
  *
- * Usage: npm run selfplay -- --out ml/data/run-1 [--hands 500] [--players 2|4] [--samples 120] [--explore 0.1] [--seed 1]
+ * Usage: npm run selfplay -- --out ml/data/run-1 [--hands 500] [--players 2|4] [--teacher stats,samples=120] [--explore 0.1] [--seed 1]
  *
  * Writes raw little-endian arrays next to a meta.json (read them with numpy.fromfile), one row per decision:
  *   x.f32     encode(view), featureCount(players) floats
  *   mask.u8   legalMask(view), 40 bytes
- *   q.f32     the Stats bot's score per card (thirds, our team minus theirs at the end of the hand), 0 if illegal
+ *   q.f32     the teacher's score per card (thirds, our team minus theirs at the end of the hand), 0 if illegal
  *   z.f32     what our team actually ended the hand with, minus theirs
  * Positions with only one legal card are skipped. With --explore, that share of moves is a random legal card
  * (still saved with the bot's scores), so the data also covers positions the bot itself wouldn't reach.
@@ -23,7 +23,8 @@ import { GameConfig, GameState, collectAndDraw, dealNext, newGame, teamOf } from
 import { seededRng } from '../src/engine/random';
 import { legalPlays, seatView } from '../src/engine/view';
 import { applyMove } from '../src/engine/bots';
-import { moveWith, statsScores } from '../src/engine/bots/stats';
+import { moveWith } from '../src/engine/bots/stats';
+import { scorerFromSpec } from './botspec';
 import { ACTIONS, encode, featureCount, legalMask } from '../src/engine/ml/encode';
 
 function arg(name: string, fallback?: string): string {
@@ -36,12 +37,13 @@ function arg(name: string, fallback?: string): string {
 const out = arg('out');
 const hands = Number(arg('hands', '500'));
 const players = Number(arg('players', '2')) as 2 | 4;
-const samples = Number(arg('samples', '120'));
+const teacher = arg('teacher', 'stats,samples=120');
+const score = scorerFromSpec(teacher);
 const explore = Number(arg('explore', '0.1'));
 const firstSeed = Number(arg('seed', '1'));
 const LAST_TRICK_BONUS = 3;
 
-const settings = { players, features: featureCount(players), actions: ACTIONS, samples, explore, seed: firstSeed };
+const settings = { players, features: featureCount(players), actions: ACTIONS, teacher, explore, seed: firstSeed };
 const rowBytes: Record<string, number> = { 'x.f32': 4 * settings.features, 'mask.u8': ACTIONS, 'q.f32': 4 * ACTIONS, 'z.f32': 4 };
 const metaPath = join(out, 'meta.json');
 
@@ -94,7 +96,7 @@ for (let h = done; h < hands; h++) {
       s = applyMove(s, s.turn, moveWith(v, legal[0]));
       continue;
     }
-    const scored = statsScores(v, rng, { samples, endgame: true });
+    const scored = score(v, rng);
     const q = new Float32Array(ACTIONS);
     for (const { card, score } of scored) q[cardIndex(card)] = score;
     decisions.push({ team: teamOf(config, s.turn), x: encode(v), mask: legalMask(v), q });

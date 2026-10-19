@@ -1,0 +1,5 @@
+noaug-256x2 --epochs 40 --hidden 256 --layers 2 --no-augment
+aug-256x2 --epochs 40 --hidden 256 --layers 2
+aug-512x2 --epochs 40 --hidden 512 --layers 2
+aug-512x3 --epochs 40 --hidden 512 --layers 3
+aug-1024x2 --epochs 40 --hidden 1024 --layers 2

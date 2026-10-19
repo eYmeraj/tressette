@@ -1,4 +1,4 @@
-import { Card, thirds } from '../cards';
+import { Card, cardIndex, thirds } from '../cards';
 import { GameState, Rng, collectAndDraw, teamOf } from '../game';
 import { SeatView, accusiFor, legalPlays, seatView } from '../view';
 import { classicMove, classicSignal } from './classic';
@@ -13,12 +13,19 @@ export interface StatsOptions {
   samples: number;
   /** Solve the 2-player endgame exactly once the stock is empty. */
   endgame: boolean;
+  /** How every seat plays out the imagined deals; the classic bot unless given (e.g. a trained network). */
+  rollout?: (v: SeatView) => BotMove;
+  /**
+   * Only search the `top` cards `prior` rates best (scores by DECK index, e.g. a network's), so the samples are
+   * spent on the plausible ones.
+   */
+  prune?: { top: number; prior: (v: SeatView) => Float32Array };
 }
 
-/** Plays the rest of the hand with every seat using the classic bot. */
-function playOutHand(s: GameState): GameState {
+/** Plays the rest of the hand with every seat using `rollout`. */
+function playOutHand(s: GameState, rollout: (v: SeatView) => BotMove): GameState {
   while (s.phase === 'playing' || s.phase === 'trickComplete') {
-    s = s.phase === 'trickComplete' ? collectAndDraw(s) : applyMove(s, s.turn, classicMove(seatView(s, s.turn)));
+    s = s.phase === 'trickComplete' ? collectAndDraw(s) : applyMove(s, s.turn, rollout(seatView(s, s.turn)));
   }
   return s;
 }
@@ -41,17 +48,25 @@ function takenMargin(v: SeatView, team: number): number {
 }
 
 /**
- * How good each legal card is, as the thirds (with the last-trick bonus) our team should end the hand with
+ * How good each legal card is (or each of the `prune.top` most promising), as the thirds (with the last-trick bonus) our team should end the hand with
  * minus theirs. Averaged over `samples` random deals of the hidden cards consistent with what this seat has seen,
  * each played out by the classic bot, or exact once the 2-player stock is empty (with `endgame`).
  */
-export function statsScores(v: SeatView, rng: Rng, { samples, endgame }: StatsOptions): { card: Card; score: number }[] {
-  const legal = legalPlays(v);
+export function statsScores(
+  v: SeatView,
+  rng: Rng,
+  { samples, endgame, rollout = classicMove, prune }: StatsOptions,
+): { card: Card; score: number }[] {
+  let legal = legalPlays(v);
   if (!legal.length) throw new Error(`Seat ${v.seat} cannot play now`);
   const team = teamOf(v.config, v.seat);
   if (endgame && v.config.players === 2 && v.stockSize === 0) {
     const taken = takenMargin(v, team);
     return endgameScores(v).map(({ card, score }) => ({ card, score: taken + score }));
+  }
+  if (prune && legal.length > prune.top) {
+    const prior = prune.prior(v);
+    legal = [...legal].sort((a, b) => prior[cardIndex(b)] - prior[cardIndex(a)]).slice(0, prune.top);
   }
   const callAccusi = accusiFor(v).length > 0;
   const leading = v.trick.length === 0;
@@ -61,7 +76,7 @@ export function statsScores(v: SeatView, rng: Rng, { samples, endgame }: StatsOp
     legal.forEach((c, k) => {
       const signal = leading ? classicSignal(v, c) : undefined;
       const after = applyMove(world, v.seat, { cardId: c.id, signal, callAccusi });
-      totals[k] += margin(playOutHand(after), team);
+      totals[k] += margin(playOutHand(after, rollout), team);
     });
   }
   return legal.map((card, k) => ({ card, score: totals[k] / samples }));
