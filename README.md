@@ -1,7 +1,8 @@
 # Tressette
 
 The Italian trick-taking card game in the browser, with the standard Piacentine deck (public-domain scan, see CREDITS.md) or an Engraved version of it (gold on suit-coloured grounds), chosen at setup or in Settings.
-Play 2-player (head to head, drawing from the deck) or 4-player (2 vs 2) against AI bots.
+Play 2-player (head to head, drawing from the deck) or 4-player (2 vs 2) against AI bots, from simple rules of
+thumb up to a neural network trained by self-play: see [BOTS.md](BOTS.md) for who you're playing against.
 
 ```sh
 npm install
