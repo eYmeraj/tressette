@@ -1,8 +1,9 @@
 # Hand sharing (Cloudflare Worker + D1)
 
-Players can opt in ("Share hands" on the setup screen) to send each hand they finish, to help train the bots. The
-app sends a `HandRecord` (`src/engine/record.ts`: the deal and every card played) plus an anonymous browser id, a
-game id, the opponent and the app version. This Worker replays each hand with the game's own engine, rejects
+Players can opt in ("Share hands" on the setup screen) to send each 2-player hand they finish, to help train the
+bots (only 2-player hands for now, since the ML bots are 2-player only; the app doesn't send others and the Worker
+rejects them). The app sends a `HandRecord` (`src/engine/record.ts`: the deal and every card played) plus an
+anonymous browser id, a game id, the opponent and the app version. This Worker replays each hand with the game's own engine, rejects
 anything impossible, and stores it in a D1 (SQLite) database. Nothing is sent unless the site was built with
 `VITE_HANDS_URL` and the player turned sharing on.
 

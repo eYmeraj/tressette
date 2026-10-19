@@ -79,7 +79,7 @@ function send(hand: SharedHand) {
 }
 
 /**
- * Records each hand from its deal to its end and, if the player opted in, shares it. Hands resumed from a saved game
+ * Records each 2-player hand from its deal to its end and, if the player opted in, shares it. Hands resumed from a saved game
  * part-way through aren't shared, since their deal wasn't seen.
  */
 export function useHandSharing(state: GameState) {
@@ -95,7 +95,8 @@ export function useHandSharing(state: GameState) {
     const s = start.current;
     if ((state.phase === 'handOver' || state.phase === 'gameOver') && s && s.handNumber === state.handNumber && s.config === state.config) {
       start.current = null;
-      if (enabled && HANDS_URL) {
+      // Only 2-player hands for now: the ML bots are 2-player only.
+      if (enabled && HANDS_URL && state.config.players === 2) {
         send({ record: recordHand(s, state), player: playerId(), game: game.current, bot: botIdFor(state.config), app: import.meta.env.VITE_APP_VERSION || 'dev' });
       }
     }

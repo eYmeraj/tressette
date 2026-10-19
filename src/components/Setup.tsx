@@ -85,7 +85,7 @@ export function Setup({
               label="Share hands"
               on={share}
               onChange={setShare}
-              hint="Anonymously share the cards played in your hands to help train the bots"
+              hint="Anonymously share the cards played in your 2-player hands to help train the bots"
             />
           )}
           {onArtChange && <CardArtPicker value={art} onChange={onArtChange} />}
@@ -103,7 +103,7 @@ export function Setup({
           <details className="rules">
             <summary>Sharing hands</summary>
             <p>
-              With <em>Share hands</em> on, each hand you finish is sent to help train the bots: the deal, the cards
+              With <em>Share hands</em> on, each 2-player hand you finish is sent to help train the bots: the deal, the cards
               everyone played, the score, which opponent you played, and a random id made by this browser (so hands
               from one player can be grouped). Nothing else: no name, account, location or IP address is stored. It's
               off unless you turn it on, and you can turn it off any time.
