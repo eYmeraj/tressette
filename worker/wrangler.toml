@@ -12,3 +12,10 @@ binding = "DB"
 database_name = "tressette-hands"
 # From `npx wrangler d1 create tressette-hands` (not secret: using it needs the account's credentials).
 database_id = "55ac663e-1e45-4878-a41a-7fd98d3c7599"
+
+# At most 30 hands a minute from one IP address (a hand takes a few minutes to play), so a script can't flood the
+# database. Counted per Cloudflare location, so it's approximate, which is fine here.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
