@@ -1,4 +1,4 @@
-import { DECK, SUITS, cardIndex, thirds } from '../cards';
+import { DECK, SUITS, cardIndex, strength, thirds } from '../cards';
 import { HAND_SIZE, Signal, teamOf, winningPlayIndex } from '../game';
 import { SeatView, legalPlays, unseenCards } from '../view';
 import { knownCards, voids } from '../bots/sample';
@@ -42,7 +42,55 @@ function layout(n: 2 | 4): Block[] {
     { name: 'progress', kind: 'plain', repeat: 1, size: 2 }, // tricks played, cards left in the stock
     { name: 'score', kind: 'plain', repeat: 1, size: 3 }, // game score of each team, target
     ...(n === 4 ? [{ name: 'signals', kind: 'suitSignal' as const, repeat: n - 1 }] : []), // by each other seat
+    // Derived from the blocks above (see `derive`), so the network needn't work them out. Kept last, so a network
+    // trained before they existed still reads its inputs as a prefix.
+    { name: 'outCount', kind: 'suit', repeat: 1 }, // cards of each suit not yet played and not ours, / 10
+    { name: 'outThirds', kind: 'suit', repeat: 1 }, // their points, / 8 (a whole suit is worth 8 thirds)
+    { name: 'ourCount', kind: 'suit', repeat: 1 }, // cards of each suit we hold, / 10
+    { name: 'ourMaster', kind: 'suit', repeat: 1 }, // we hold the strongest card of the suit still in play
+    { name: 'theirMaster', kind: 'suit', repeat: 1 }, // another seat is known to hold it
   ];
+}
+
+/** The number of features before the derived blocks: what networks trained before them expect. */
+export function baseFeatureCount(players: 2 | 4): number {
+  const at = offsets(players);
+  return at.outCount;
+}
+
+/**
+ * Fills the derived blocks of `x` from its other blocks. Works on the vector alone, so recorded training data can
+ * be brought up to date without replaying the games (scripts/derive-features.ts).
+ */
+export function derive(x: Float32Array, players: 2 | 4): Float32Array {
+  const n = players;
+  const at = offsets(n);
+  const per = RANKS_PER_SUIT;
+  for (let s = 0; s < SUITS.length; s++) {
+    let out = 0, outPts = 0, ours = 0, best = -1, bestOurs = false, bestKnown = false;
+    for (let r = 0; r < per; r++) {
+      const i = s * per + r;
+      let gone = false;
+      for (let seat = 0; seat < n; seat++) gone ||= x[at.played + 40 * seat + i] > 0 || x[at.table + 40 * seat + i] > 0;
+      if (gone) continue;
+      const held = x[at.hand + i] > 0;
+      let known = false;
+      for (let seat = 0; seat < n - 1; seat++) known ||= x[at.known + 40 * seat + i] > 0;
+      if (held) ours++;
+      else {
+        out++;
+        outPts += thirds(DECK[i]);
+      }
+      const st = strength(DECK[i]);
+      if (st > best) [best, bestOurs, bestKnown] = [st, held, known];
+    }
+    x[at.outCount + s] = out / per;
+    x[at.outThirds + s] = outPts / 8;
+    x[at.ourCount + s] = ours / per;
+    x[at.ourMaster + s] = best >= 0 && bestOurs ? 1 : 0;
+    x[at.theirMaster + s] = best >= 0 && bestKnown ? 1 : 0;
+  }
+  return x;
 }
 
 const blockSize = (b: Block) => (b.kind === 'plain' ? b.size! : KIND_SIZE[b.kind]);
@@ -110,7 +158,7 @@ export function encode(v: SeatView): Float32Array {
       x[at.signals + 12 * (rel(e.seat) - 1) + 3 * SUITS.indexOf(e.suit) + SIGNALS.indexOf(e.signal)] = 1;
     }
   }
-  return x;
+  return derive(x, n);
 }
 
 /** 1 for each card (in DECK order) this seat may play now. */

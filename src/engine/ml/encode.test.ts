@@ -5,7 +5,7 @@ import { seatView } from '../view';
 import { BOTS, applyBotMove } from '../bots';
 import { sampleDeal } from '../bots/sample';
 import { SUITS, Suit, makeCard } from '../cards';
-import { encode, featureCount, legalMask, suitPermutationMaps, suitPermutations } from './encode';
+import { baseFeatureCount, derive, encode, featureCount, legalMask, suitPermutationMaps, suitPermutations } from './encode';
 
 /** The same game with every suit s renamed to SUITS[perm[s]]: cards, signals, everything. */
 function relabel<T>(value: T, perm: number[]): T {
@@ -38,6 +38,11 @@ function midHand(players: 2 | 4, seed: number, moves: number): GameState {
 }
 
 describe('encode', () => {
+  it('keeps the base layout that older networks were trained on', () => {
+    expect(baseFeatureCount(2)).toBe(258);
+    expect(baseFeatureCount(4)).toBe(544);
+  });
+
   for (const players of [2, 4] as const) {
     it(`sees only what the seat may know (${players} players)`, () => {
       for (let seed = 1; seed <= 20; seed++) {
@@ -64,6 +69,14 @@ describe('encode', () => {
         expect(encode(w)).toEqual(Float32Array.from(features, (i) => x[i]));
         expect(legalMask(w)).toEqual(Uint8Array.from(actions, (i) => mask[i]));
       }
+    });
+
+    it(`derives the extra features from the base ones alone (${players} players)`, () => {
+      const s = midHand(players, 5, 9);
+      const x = encode(seatView(s, s.turn));
+      const base = new Float32Array(x.length);
+      base.set(x.subarray(0, baseFeatureCount(players)));
+      expect(derive(base, players)).toEqual(x);
     });
 
     it(`has the advertised length and marks the legal cards (${players} players)`, () => {

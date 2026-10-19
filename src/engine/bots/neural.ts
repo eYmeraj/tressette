@@ -16,7 +16,9 @@ export function makeNetPolicy(weights: MlpWeights): NetPolicy {
   const net = makeMlp(weights);
   const scores = (v: SeatView) => {
     if (v.config.players !== weights.players) throw new Error(`Network trained for ${weights.players} players`);
-    return net(encode(v));
+    // Networks trained before newer inputs were added read only the first `features` of them.
+    const x = encode(v);
+    return net(x.length === weights.features ? x : x.subarray(0, weights.features));
   };
   return {
     scores,
