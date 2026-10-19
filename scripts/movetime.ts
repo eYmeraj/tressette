@@ -1,3 +1,8 @@
+/**
+ * How long bots take per decision (positions with more than one legal card), over three seeded 2-player hands.
+ *
+ * Usage: npm run -s movetime -- "search:src/engine/ml/weights-2p.json,samples=40,top=3" neural:src/engine/ml/weights-2p.json
+ */
 import { collectAndDraw, dealNext, newGame } from '../src/engine/game';
 import { seededRng } from '../src/engine/random';
 import { legalPlays, seatView } from '../src/engine/view';
@@ -12,7 +17,10 @@ for (const spec of process.argv.slice(2).filter((a) => a !== '--')) {
     let s = newGame({ players: 2, targetScore: 31, accusi: false, signals: false }, rng);
     while (s.phase === 'dealing') s = dealNext(s);
     while (s.phase === 'playing' || s.phase === 'trickComplete') {
-      if (s.phase === 'trickComplete') { s = collectAndDraw(s); continue; }
+      if (s.phase === 'trickComplete') {
+        s = collectAndDraw(s);
+        continue;
+      }
       const v = seatView(s, s.turn);
       const t = performance.now();
       const move = bot.chooseMove(v, rng);
