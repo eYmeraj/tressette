@@ -65,6 +65,8 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (req.method !== 'POST' || url.pathname !== '/hands') return new Response('Not found', { status: 404, headers });
     if (!headers['access-control-allow-origin']) return new Response('Origin not allowed', { status: 403 });
+    const { success } = await env.LIMITER.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
+    if (!success) return new Response('Too many hands, slow down', { status: 429, headers });
     // Refuse oversized bodies before reading them (and again after, in case the header was missing or wrong).
     if (Number(req.headers.get('content-length') ?? 0) > MAX_BYTES) return new Response('Too large', { status: 413, headers });
     const raw = await req.text();

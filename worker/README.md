@@ -48,7 +48,8 @@ npx wrangler d1 execute tressette-hands --local --command "SELECT * FROM hands"
 - Each hand is rebuilt field by field (anything unexpected is dropped), replayed with the game engine (impossible
   hands are rejected), and stored once (`UNIQUE (player, game, hand_number)`), with values bound, never pasted into
   the SQL.
-- Bodies over 20 KB are refused; requests from other websites are refused (the origin check stops browsers, not
+- At most 30 hands a minute from one IP address (`[[ratelimits]]` in `wrangler.toml`; change the limit there and
+  redeploy), so a script can't flood the database. Bodies over 20 KB are refused; requests from other websites are refused (the origin check stops browsers, not
   scripts, which is why the replay is what really matters).
 - `Env` types come from `npx wrangler types` (`worker-configuration.d.ts`); rerun it after changing `wrangler.toml`.
 
