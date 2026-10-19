@@ -15,9 +15,7 @@ export function useGameSounds(state: GameState) {
 
     if (state.phase === 'dealing' && state.dealt > p.dealt) sounds.deal();
     if (state.trick.length > p.trick.length) sounds.play();
-    if (state.handNumber === p.handNumber && state.tricks.length > p.tricks.length) {
-      sounds.collect(teamOf(state.config, state.tricks[state.tricks.length - 1].winner) === ours);
-    }
+    if (state.handNumber === p.handNumber && state.tricks.length > p.tricks.length) sounds.collect();
     if (state.phase === 'drawing' && p.phase !== 'drawing') sounds.draw();
     if (state.handNumber === p.handNumber && state.events.length > p.events.length) {
       if (state.events.slice(p.events.length).some((e) => e.type === 'accuso' || e.type === 'signal')) sounds.announce();

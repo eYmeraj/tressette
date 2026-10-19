@@ -119,11 +119,8 @@ export const sounds = {
       burst({ duration: 0.02, gain: 0.012, type: 'bandpass', from: 2800, q: 1.5, delay: delay + 0.08 });
     }
   },
-  /** A trick gathered up; brighter when our side takes it. */
-  collect: (ours: boolean) => {
-    burst({ duration: 0.28, gain: 0.18, type: 'bandpass', from: 2400, to: 600, q: 1.2 });
-    if (ours) note(G5, { delay: 0.12, duration: 0.25, gain: 0.12 });
-  },
+  /** A trick gathered up. */
+  collect: () => burst({ duration: 0.28, gain: 0.18, type: 'bandpass', from: 2400, to: 600, q: 1.2 }),
   /** An accuso or a signal announced. */
   announce: () => {
     note(E5, { duration: 0.25, gain: 0.18 });
