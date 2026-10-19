@@ -72,13 +72,13 @@ export const BOTS = {
   },
   // Trained by self-play (see ml/README.md); 2-player only, and they need prepareBot before their first move.
   neural: lazyBot(
-    { id: 'neural', name: 'Neural', label: 'Neural', age: 20, difficulty: 'Hard', players: [2],
-      description: 'A neural network trained by self-play: plays on instinct, instantly. 2 players only.' },
+    { id: 'neural', name: 'Neural', label: 'Expert', age: 20, difficulty: 'Expert', players: [2],
+      description: 'Learned by playing itself for thousands of hands: plays on instinct, instantly. 2 players only.' },
     async () => makeNeuralBot(await fetchWeights(weightsUrl), 'neural'),
   ),
   expert: lazyBot(
-    { id: 'expert', name: 'Expert', label: 'Expert', age: 30, difficulty: 'Expert', players: [2],
-      description: 'Imagines how the hidden cards could lie and plays each deal out with the neural network. 2 players only.' },
+    { id: 'expert', name: 'Expert', label: 'Master', age: 30, difficulty: 'Master', players: [2],
+      description: 'Plays on instinct too, then imagines how the hidden cards could lie and checks its choice. 2 players only.' },
     // About 0.3 s a move on a desktop, at most ~0.8 s on slow devices.
     async () => makeNetSearchBot(await fetchWeights(weightsUrl), { samples: 40, top: 3, budget: { ms: 800, minSamples: 12 } }, 'expert'),
   ),

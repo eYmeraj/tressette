@@ -36,11 +36,11 @@ export function makeNeuralBot(weights: MlpWeights, id = 'neural'): Bot {
   return {
     id,
     name: 'Neural',
-    label: 'Neural',
+    label: 'Expert',
     age: 20,
-    difficulty: 'Hard',
+    difficulty: 'Expert',
     players: [weights.players],
-    description: 'A neural network trained by self-play: plays on instinct, instantly. 2 players only.',
+    description: 'Learned by playing itself for thousands of hands: plays on instinct, instantly. 2 players only.',
     chooseMove: (v) => policy.move(v),
   };
 }
@@ -66,11 +66,11 @@ export function makeNetSearchBot(weights: MlpWeights, { samples, top, rollout, b
   return {
     id,
     name: 'Expert',
-    label: 'Expert',
+    label: 'Master',
     age: 30,
-    difficulty: 'Expert',
+    difficulty: 'Master',
     players: [weights.players],
-    description: 'Imagines how the hidden cards could lie and plays each deal out with the neural network. 2 players only.',
+    description: 'Plays on instinct too, then imagines how the hidden cards could lie and checks its choice. 2 players only.',
     chooseMove: makeStatsBot({
       samples,
       endgame: true,
