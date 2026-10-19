@@ -176,7 +176,7 @@ def main():
     ckpt = ckpt_dir / f"{args.out.stem}-{key}.pt"
     start, best_regret, best_state, history = 0, float("inf"), None, []
     if ckpt.exists() and not args.fresh:
-        state = torch.load(ckpt, map_location=device, weights_only=False)
+        state = torch.load(ckpt, map_location=device, weights_only=True)  # tensors and plain values only, never code
         net.load_state_dict(state["net"])
         opt.load_state_dict(state["opt"])
         sched.load_state_dict(state["sched"])
