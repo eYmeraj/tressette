@@ -112,8 +112,13 @@ export const sounds = {
     burst({ duration: 0.05, gain: 0.06, type: 'bandpass', from: 2500, q: 0.8 });
     note(120, { duration: 0.06, gain: 0.04, type: 'sine', slideTo: 70 });
   },
-  /** Cards drawn from the deck. */
-  draw: () => burst({ duration: 0.22, gain: 0.2, type: 'bandpass', from: 700, to: 2800, q: 2 }),
+  /** Cards drawn from the deck: each slides off the top and lands with a light flick, one after the other. */
+  draw: () => {
+    for (const delay of [0, 0.16]) {
+      burst({ duration: 0.11, gain: 0.07, type: 'lowpass', from: 2200, to: 900, delay });
+      burst({ duration: 0.025, gain: 0.05, type: 'bandpass', from: 3400, q: 1.5, delay: delay + 0.1 });
+    }
+  },
   /** A trick gathered up; brighter when our side takes it. */
   collect: (ours: boolean) => {
     burst({ duration: 0.28, gain: 0.18, type: 'bandpass', from: 2400, to: 600, q: 1.2 });
