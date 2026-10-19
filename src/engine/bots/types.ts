@@ -13,7 +13,7 @@ export interface Bot {
   /** Shown on the setup screen. */
   label: string;
   /** Endi at the life stage this bot plays like: the opponent is called "<stage> Endi". */
-  endis_life_stage: string;
+  endisLifeStage: string;
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert' | 'Master';
   description: string;
   /** The game sizes it can play; any if omitted. */
