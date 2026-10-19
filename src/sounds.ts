@@ -115,12 +115,12 @@ export const sounds = {
   /** Cards drawn from the deck: each slides off the top and lands with a light flick, one after the other. */
   draw: () => {
     for (const delay of [0, 0.16]) {
-      burst({ duration: 0.09, gain: 0.022, type: 'lowpass', from: 1400, to: 700, delay });
-      burst({ duration: 0.02, gain: 0.012, type: 'bandpass', from: 2800, q: 1.5, delay: delay + 0.08 });
+      burst({ duration: 0.08, gain: 0.01, type: 'lowpass', from: 1200, to: 600, delay });
+      burst({ duration: 0.02, gain: 0.005, type: 'bandpass', from: 2600, q: 1.5, delay: delay + 0.07 });
     }
   },
   /** A trick gathered up. */
-  collect: () => burst({ duration: 0.28, gain: 0.18, type: 'bandpass', from: 2400, to: 600, q: 1.2 }),
+  collect: () => burst({ duration: 0.22, gain: 0.04, type: 'bandpass', from: 1800, to: 500, q: 1 }),
   /** An accuso or a signal announced. */
   announce: () => {
     note(E5, { duration: 0.25, gain: 0.18 });
