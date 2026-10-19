@@ -26,8 +26,31 @@ deploy the site by pushing to `main`:
 gh variable set HANDS_URL --body https://tressette-hands.<you>.workers.dev
 ```
 
-For local development, put the same line in `.env.local` as `VITE_HANDS_URL=...` (localhost:5173 is an allowed
-origin; others are set in `ALLOWED_ORIGINS` in `wrangler.toml`).
+The live Worker only accepts hands from the live site (`ALLOWED_ORIGINS` in `wrangler.toml`).
+
+## Local development
+
+Test against a local Worker and a throwaway local database, never the real one:
+
+```sh
+cd worker
+cp .dev.vars.example .dev.vars                                   # allows http://localhost:5173, locally only
+npx wrangler d1 execute tressette-hands --local --file schema.sql
+npx wrangler dev                                                 # http://localhost:8787
+# in the project root, .env.local:  VITE_HANDS_URL=http://localhost:8787   then npm run dev
+npx wrangler d1 execute tressette-hands --local --command "SELECT * FROM hands"
+```
+
+## How it's protected
+
+- The browser holds no credentials; the Worker reaches D1 through its binding (`env.DB`), so the database has no
+  public address. Only `POST /hands` exists, and it only inserts.
+- Each hand is rebuilt field by field (anything unexpected is dropped), replayed with the game engine (impossible
+  hands are rejected), and stored once (`UNIQUE (player, game, hand_number)`), with values bound, never pasted into
+  the SQL.
+- Bodies over 20 KB are refused; requests from other websites are refused (the origin check stops browsers, not
+  scripts, which is why the replay is what really matters).
+- `Env` types come from `npx wrangler types` (`worker-configuration.d.ts`); rerun it after changing `wrangler.toml`.
 
 ## Looking at the data
 

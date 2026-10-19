@@ -3,8 +3,9 @@ name = "tressette-hands"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
+# Only the live site may send hands. For local testing, `npx wrangler dev` reads .dev.vars instead (see README).
 [vars]
-ALLOWED_ORIGINS = "https://eymeraj.github.io,http://localhost:5173"
+ALLOWED_ORIGINS = "https://eymeraj.github.io"
 
 [[d1_databases]]
 binding = "DB"
