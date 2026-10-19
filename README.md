@@ -12,6 +12,17 @@ npm run build
 npm run arena -- --a classic --b classic --games 2000 --players 2   # compare two bots
 ```
 
+## On a phone, offline
+
+The site installs as an app and then plays with no connection: a service worker (`src/pwa.ts`, configured in
+`vite.config.ts`) keeps every file, both decks and the neural bots' weights on the device. Open the site once online, then:
+
+- **iPhone / iPad (Safari):** Share button → *Add to Home Screen* → *Add*. If the sheet shows *Open as Web App*, leave it on.
+- **Android (Chrome):** ⋮ menu → *Add to Home screen* (or *Install app*) → *Install*.
+
+Open it from the new icon. A new deploy reaches installed copies the next time they open online, and takes over on
+the setup screen, never during a game. Hands shared while offline wait on the device until it's back online.
+
 ## Layout
 
 - `src/engine/` — pure, framework-free game logic
@@ -27,6 +38,7 @@ npm run arena -- --a classic --b classic --games 2000 --players 2   # compare tw
   - `random.ts` seeded RNG for replayable simulations
 - `src/components/` — React UI (`Card.tsx` renders cards; images live in `public/cards/` and `public/cards-illustrated/`)
 - `src/useGame.ts` — wires the engine to React and paces the bots; bot moves run in a Web Worker (`botWorker.ts`, `botClient.ts`)
+- `public/icons/` - home-screen icons (the Asso di Coppe on the felt)
 
 ## Rules implemented
 

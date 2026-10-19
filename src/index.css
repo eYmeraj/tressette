@@ -7,8 +7,12 @@
   --ink: #2b2118;
   --team-0: #f4cf5a;
   --team-1: #e9867b;
+  /* The screen less what the notch, home indicator and rounded corners cover (zero outside an installed iPhone app).
+     Heights use svh, the height with the browser's bars showing, so cards don't resize as the bars come and go. */
+  --safe-w: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  --safe-h: calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   /* Sized by the window's width and height so the whole table fits without scrolling. */
-  --card-w: clamp(48px, min(8vw, 10.5vh), 92px);
+  --card-w: clamp(48px, min(calc(var(--safe-w) * 0.08), calc(var(--safe-h) * 0.105)), 92px);
   --card-h: calc(var(--card-w) * 545 / 300);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--cream);
@@ -23,9 +27,11 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; }
+/* No rubber-band bounce: the table is fixed to the screen, like an app. */
+body { margin: 0; min-height: 100dvh; overscroll-behavior: none; }
 h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; }
-button { font: inherit; cursor: pointer; }
+/* manipulation: a quick second tap is another tap, not a zoom. */
+button { font: inherit; cursor: pointer; touch-action: manipulation; }
 
 button:not(.card) {
   border: 1px solid rgba(251, 246, 232, 0.4);
@@ -154,7 +160,7 @@ button.card:disabled { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .asso-rays { animation: none; }
 }
-.asso-hero { position: relative; --card-w: min(38vw, 22vh, 170px); }
+.asso-hero { position: relative; --card-w: min(38vw, 22svh, 170px); }
 .asso-title {
   position: relative; margin: 0.3rem 0 0; font-size: clamp(1.8rem, 7vw, 3.2rem); color: var(--gold-light);
   text-shadow: 0 2px 0 #8a5a00, 0 0 18px rgba(255, 200, 60, 0.8);
@@ -171,8 +177,13 @@ button.cookie {
 .cookie-hint { font-size: 0.85rem; opacity: 0.7; }
 
 /* ---------- setup ---------- */
-.screen { min-height: 100vh; }
-.setup-page { position: relative; min-height: 100vh; overflow: hidden; }
+/* Each screen keeps clear of the notch and home indicator; the felt behind it runs to the edges. */
+.screen {
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  --page-h: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+.setup-page { position: relative; min-height: var(--page-h); overflow: hidden; }
 /* Settings and buttons in Inter: one clean sans with a small, consistent set of sizes and weights. */
 .setup { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 0.95rem; }
 .setup button { font-weight: 500; letter-spacing: 0.01em; }
@@ -241,7 +252,8 @@ button.cookie {
 .rules li { margin: 0.35rem 0; line-height: 1.4; }
 
 /* ---------- game layout ---------- */
-.game { display: grid; min-height: 100vh; }
+/* No press-and-hold menu on the cards (Save Image, Copy). */
+.game { display: grid; min-height: var(--page-h); -webkit-touch-callout: none; }
 .table {
   position: relative;
   display: grid;
@@ -334,7 +346,7 @@ button.cookie {
 }
 
 /* ---------- score & settings ---------- */
-.hud { position: fixed; top: 1rem; right: 1rem; display: flex; align-items: flex-start; gap: 0.5rem; z-index: 5; }
+.hud { position: fixed; top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); display: flex; align-items: flex-start; gap: 0.5rem; z-index: 5; }
 .scoreboard {
   /* A scrap of ruled paper with the score kept in pen, as at the bar. */
   position: relative; isolation: isolate;
@@ -382,7 +394,7 @@ button.cookie {
 button.icon-button { display: grid; place-items: center; padding: 0.45rem; border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
 
 /* ---------- modal ---------- */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; padding: 1rem; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px)); }
 .modal { background: var(--cream); color: var(--ink); border-radius: 12px; padding: 1.5rem 2rem; min-width: min(420px, 100%); text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
 .modal h2 { margin-top: 0; }
 .modal table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; }
@@ -414,5 +426,5 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
   .last-hand span { display: none; }
   .card.mini { width: 24px; }
   /* Bigger cards in hand on small screens: they are what the player touches. */
-  .hand { --card-w: clamp(56px, min(16vw, 20vh), 92px); }
+  .hand { --card-w: clamp(56px, min(calc(var(--safe-w) * 0.16), calc(var(--safe-h) * 0.2)), 92px); }
 }

@@ -54,11 +54,23 @@ function audio(): { ctx: AudioContext; out: GainNode; noise: AudioBuffer } | nul
       const data = noise.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     }
-    if (ctx.state === 'suspended') void ctx.resume();
+    // 'interrupted' is iOS's state after a call or a trip to the background.
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
     return { ctx, out: master!, noise: noise! };
   } catch {
     return null;
   }
+}
+
+/**
+ * iOS only starts audio from inside a tap, but sounds play when a bot moves or a card is dealt, not on a tap. So
+ * every tap or key makes sure the audio is running, ready for the next sound.
+ */
+function wakeAudio() {
+  if (ctx?.state !== 'running') audio();
+}
+if (typeof window !== 'undefined') {
+  for (const type of ['touchend', 'click', 'keydown']) window.addEventListener(type, wakeAudio, { capture: true, passive: true });
 }
 
 /** A burst of filtered noise: the sound of card on card or card on cloth. */
