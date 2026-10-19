@@ -20,6 +20,11 @@ export interface StatsOptions {
    * spent on the plausible ones.
    */
   prune?: { top: number; prior: (v: SeatView) => Float32Array };
+  /**
+   * Stop sampling once this many milliseconds have passed (after at least `minSamples`), so slow devices still get
+   * a move in time. Makes the bot depend on the clock: the tools leave it unset to stay reproducible.
+   */
+  budget?: { ms: number; minSamples: number };
 }
 
 /** Plays the rest of the hand with every seat using `rollout`. */
@@ -55,7 +60,7 @@ function takenMargin(v: SeatView, team: number): number {
 export function statsScores(
   v: SeatView,
   rng: Rng,
-  { samples, endgame, rollout = classicMove, prune }: StatsOptions,
+  { samples, endgame, rollout = classicMove, prune, budget }: StatsOptions,
 ): { card: Card; score: number }[] {
   let legal = legalPlays(v);
   if (!legal.length) throw new Error(`Seat ${v.seat} cannot play now`);
@@ -71,7 +76,10 @@ export function statsScores(
   const callAccusi = accusiFor(v).length > 0;
   const leading = v.trick.length === 0;
   const totals = new Array<number>(legal.length).fill(0);
-  for (let i = 0; i < samples; i++) {
+  const deadline = budget ? Date.now() + budget.ms : Infinity;
+  let done = 0;
+  for (let i = 0; i < samples; i++, done++) {
+    if (budget && i >= budget.minSamples && Date.now() > deadline) break;
     const world = sampleDeal(v, rng);
     legal.forEach((c, k) => {
       const signal = leading ? classicSignal(v, c) : undefined;
@@ -79,7 +87,7 @@ export function statsScores(
       totals[k] += margin(playOutHand(after, rollout), team);
     });
   }
-  return legal.map((card, k) => ({ card, score: totals[k] / samples }));
+  return legal.map((card, k) => ({ card, score: totals[k] / done }));
 }
 
 /** Plays `card` with the classic bot's signal and accusi judgement. */
