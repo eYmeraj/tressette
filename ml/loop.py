@@ -70,7 +70,7 @@ def generate(gen: int, best: str, args) -> list[str]:
     log(f"gen {gen}: generating {args.hands} hands x {args.workers} with {teacher}")
     for out in runs:
         # A self-play left over from a loop that was killed: stop it, the new one resumes its run.
-        subprocess.run(["pkill", "-f", f"--out {out} --hands"], cwd=ROOT)
+        subprocess.run(["pkill", "-f", "--", f"--out {out} --hands"], cwd=ROOT)
     procs = []
     for k, out in enumerate(runs, 1):
         cmd = ["npx", "vite-node", "scripts/selfplay.ts", "--", "--out", out, "--hands", str(args.hands),
