@@ -1,0 +1,2 @@
+# Local development only (npx wrangler dev): lets the app on localhost send hands to a local database.
+ALLOWED_ORIGINS="http://localhost:5173"

@@ -10,3 +10,4 @@ ml/models
 ml/loop
 .env.local
 worker/.wrangler
+worker/.dev.vars
