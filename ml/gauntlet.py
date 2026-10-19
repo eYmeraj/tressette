@@ -9,7 +9,7 @@ Usage (from ml/):
   .venv/bin/python gauntlet.py --a neural:new.json --vs neural:old.json:2000 --vs stats-hard:400
 
 Bot specs are relative to the project root. `--vs spec:games` sets a match's length (default per opponent below).
-Every result is appended to ml/results.jsonl.
+Every result is appended to ml/results.jsonl as soon as its match finishes.
 """
 
 import argparse
@@ -79,20 +79,23 @@ def summarise(a: str, b: str, futures) -> dict:
 
 
 def gauntlet(a: str, vs: list[str], workers: int = os.cpu_count() or 8, seed: int = 1, label: str = "") -> list[dict]:
-    """Plays every match (shards of all matches share one pool) and appends the results to results.jsonl."""
+    """Plays every match (shards of all matches share one pool). Each match is printed and appended to
+    results.jsonl as soon as it finishes, so a stopped run keeps the matches it completed."""
     started = time.time()
+    print(f"{a}", flush=True)
+    results = []
     with ThreadPoolExecutor(workers) as pool:
         pending = [(b, match(pool, a, b, games, workers, seed)) for b, games in map(split_vs, vs)]
-        results = [summarise(a, b, fs) for b, fs in pending]
-    with RESULTS.open("a") as f:
-        for r in results:
-            f.write(json.dumps({"time": time.strftime("%Y-%m-%d %H:%M:%S"), "label": label, **r}) + "\n")
-    print(f"{a}  ({time.time() - started:.0f}s)")
-    for r in results:
-        print(
-            f"  vs {r['b']:<28} {r['games']:5d} games  wins {r['win_rate']:6.1%} ± {r['win_ci']:.1%}"
-            f"  margin {r['margin_per_hand']:+.2f} ± {r['margin_ci']:.2f} pts/hand"
-        )
+        for b, fs in pending:
+            r = summarise(a, b, fs)
+            results.append(r)
+            with RESULTS.open("a") as f:
+                f.write(json.dumps({"time": time.strftime("%Y-%m-%d %H:%M:%S"), "label": label, **r}) + "\n")
+            print(
+                f"  vs {r['b']:<28} {r['games']:5d} games  wins {r['win_rate']:6.1%} ± {r['win_ci']:.1%}"
+                f"  margin {r['margin_per_hand']:+.2f} ± {r['margin_ci']:.2f} pts/hand  ({time.time() - started:.0f}s)",
+                flush=True,
+            )
     return results
 
 
