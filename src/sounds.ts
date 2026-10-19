@@ -48,7 +48,7 @@ function audio(): { ctx: AudioContext; out: GainNode; noise: AudioBuffer } | nul
     if (!ctx) {
       ctx = new AudioContext();
       master = ctx.createGain();
-      master.gain.value = 0.5;
+      master.gain.value = 0.35;
       master.connect(ctx.destination);
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = noise.getChannelData(0);
@@ -107,10 +107,10 @@ const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5, A4 = 440, F4 = 349.23,
 export const sounds = {
   /** A card dealt onto the table. */
   deal: () => burst({ duration: 0.04, gain: 0.18, type: 'bandpass', from: 3200, q: 1.5 }),
-  /** A card played: a snap on the cloth. */
+  /** A card played: a very soft brush on the cloth. */
   play: () => {
-    burst({ duration: 0.07, gain: 0.35, type: 'highpass', from: 1800 });
-    note(150, { duration: 0.09, gain: 0.3, type: 'sine', slideTo: 70 });
+    burst({ duration: 0.05, gain: 0.06, type: 'bandpass', from: 2500, q: 0.8 });
+    note(120, { duration: 0.06, gain: 0.04, type: 'sine', slideTo: 70 });
   },
   /** Cards drawn from the deck. */
   draw: () => burst({ duration: 0.22, gain: 0.2, type: 'bandpass', from: 700, to: 2800, q: 2 }),
