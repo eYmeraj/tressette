@@ -1,0 +1,13 @@
+# Cloudflare Worker that stores hands shared from the game. Setup: worker/README.md.
+name = "tressette-hands"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://eymeraj.github.io,http://localhost:5173"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tressette-hands"
+# Filled in from the output of `npx wrangler d1 create tressette-hands` (worker/README.md, step 2).
+database_id = "REPLACE_WITH_DATABASE_ID"

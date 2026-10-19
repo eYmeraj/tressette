@@ -88,8 +88,15 @@ export function newGame(config: GameConfig, rng: Rng = Math.random): GameState {
 }
 
 function deal(config: GameConfig, dealer: number, handNumber: number, scores: [number, number], rng: Rng): GameState {
+  return dealFrom(config, dealer, handNumber, scores, shuffle(newDeck(), rng));
+}
+
+/**
+ * A hand dealt from `deck` in this order: seat i gets cards i*10 to i*10+9, the rest is the stock (top first).
+ * `deal` uses it with a shuffled deck; replaying a recorded hand uses it with the recorded one.
+ */
+export function dealFrom(config: GameConfig, dealer: number, handNumber: number, scores: [number, number], deck: Card[]): GameState {
   const n = config.players;
-  const deck = shuffle(newDeck(), rng);
   return {
     config,
     phase: 'dealing',
