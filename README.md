@@ -45,5 +45,5 @@ To run it in a container instead:
 
 ```sh
 docker build -t tressette .
-docker run -p 8080:80 tressette   # http://localhost:8080
+docker run -p 8080:8080 tressette  # http://localhost:8080
 ```
