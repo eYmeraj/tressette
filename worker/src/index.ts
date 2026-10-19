@@ -33,7 +33,9 @@ function checkShape(body: Record<string, unknown>): HandRecord {
   const r = body.record as HandRecord;
   if (!r || typeof r !== 'object') throw new Error('Missing record');
   const c = r.config;
-  if (!c || !TARGETS.includes(c.targetScore) || typeof c.accusi !== 'boolean' || typeof c.signals !== 'boolean') throw new Error('Bad config');
+  // Only 2-player hands for now (the ML bots are 2-player only).
+  if (!c || c.players !== 2) throw new Error('Only 2-player hands are collected');
+  if (!TARGETS.includes(c.targetScore) || typeof c.accusi !== 'boolean' || typeof c.signals !== 'boolean') throw new Error('Bad config');
   if (!Array.isArray(r.scores) || r.scores.length !== 2 || !r.scores.every((x) => Number.isInteger(x) && x >= 0 && x < 100)) throw new Error('Bad scores');
   if (!Number.isInteger(r.handNumber) || r.handNumber < 1 || r.handNumber > 200) throw new Error('Bad hand number');
   if (!Array.isArray(r.deck) || !Array.isArray(r.plays) || !Array.isArray(r.accusi)) throw new Error('Bad record');
