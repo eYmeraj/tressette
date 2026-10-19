@@ -1,9 +1,9 @@
 import { GameConfig, Signal } from './engine/game';
 import { Bot, botFor } from './engine/bots';
 
-/** The opponent you face: Endi, older the stronger the bot. */
+/** The opponent you face: Endi, at a later life stage the stronger the bot. */
 export function endiName(bot: Bot): string {
-  return `${bot.age}yo Endi`;
+  return `${bot.endis_life_stage} Endi`;
 }
 
 export function seatNames(config: GameConfig): string[] {
