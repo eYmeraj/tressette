@@ -1,5 +1,5 @@
-/// Sharing finished hands (opt-in) to help train the bots. Sends only the cards and plays, an anonymous random id,
-/// and which bot was played; never anything about the person. The setup screen explains it ("Sharing hands").
+/// Sharing finished hands (on unless turned off) to help train the bots. Sends only the cards and plays, an anonymous
+/// random id, and which bot was played; never anything about the person. The setup screen explains it ("Sharing hands").
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { GameState } from './engine/game';
 import { HandRecord, recordHand } from './engine/record';
@@ -34,7 +34,8 @@ function remove(key: string) {
   }
 }
 
-let on = read(KEY) === 'on';
+// On by default: only an explicit 'off' (the player turned it off) disables it.
+let on = read(KEY) !== 'off';
 const listeners = new Set<() => void>();
 
 export function useShareHands(): [boolean, (on: boolean) => void] {
