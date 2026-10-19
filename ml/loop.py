@@ -15,7 +15,7 @@ terminal:
   ml/.venv/bin/python ml/detach.py ml/logs/loop.log -- caffeinate -i ml/.venv/bin/python ml/loop.py --generations 6
 
 (`caffeinate -i` keeps the Mac from sleeping while it runs.) Stop it, with everything it started, by signalling its
-process group: `kill -- -$(cat ml/logs/loop.pid)`. If it is killed some other way, the next start stops any
+process group: `kill -- -$(cat ml/logs/loop.pid)` (the loop then kills its self-play processes, which ignore SIGTERM). If it is killed some other way, the next start stops any
 self-play still writing its runs before resuming them, so a run never has two writers.
 """
 
@@ -57,9 +57,11 @@ children: list[subprocess.Popen] = []
 
 
 def stop_children(*_):
+    # npm/vite-node ignore SIGTERM, so kill outright: self-play and training both resume from their last save.
     for p in children:
         if p.poll() is None:
-            p.terminate()
+            p.kill()
+    subprocess.run(["pkill", "-9", "-f", "--", "--out ml/data/gen-"], cwd=ROOT)
     sys.exit(1)
 
 
@@ -70,7 +72,7 @@ def generate(gen: int, best: str, args) -> list[str]:
     log(f"gen {gen}: generating {args.hands} hands x {args.workers} with {teacher}")
     for out in runs:
         # A self-play left over from a loop that was killed: stop it, the new one resumes its run.
-        subprocess.run(["pkill", "-f", "--", f"--out {out} --hands"], cwd=ROOT)
+        subprocess.run(["pkill", "-9", "-f", "--", f"--out {out} --hands"], cwd=ROOT)
     procs = []
     for k, out in enumerate(runs, 1):
         cmd = ["npx", "vite-node", "scripts/selfplay.ts", "--", "--out", out, "--hands", str(args.hands),
