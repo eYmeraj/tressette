@@ -5,6 +5,7 @@ import { clearSavedGame, loadSavedGame } from './savedGame';
 import { CARD_ARTS, CardArt, CardArtContext, preloadCardImages } from './components/Card';
 import { Setup } from './components/Setup';
 import { GameScreen } from './components/GameScreen';
+import { setOnSetupScreen } from './pwa';
 
 const ART_KEY = 'tressette.cardArt';
 /** The card-style choice is parked for now: everyone plays with the classic deck and no picker is shown. */
@@ -63,6 +64,7 @@ export function App() {
     }
   }, [art]);
   const onArtChange = CARD_ART_CHOICE ? setArt : undefined;
+  useEffect(() => setOnSetupScreen(!game), [game]);
   return (
     <MotionConfig reducedMotion="user">
       <CardArtContext.Provider value={art}>

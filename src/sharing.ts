@@ -26,6 +26,14 @@ function write(key: string, value: string) {
   }
 }
 
+function remove(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
 let on = read(KEY) === 'on';
 const listeners = new Set<() => void>();
 
@@ -42,6 +50,8 @@ export function useShareHands(): [boolean, (on: boolean) => void] {
     (v: boolean) => {
       on = v;
       write(KEY, v ? 'on' : 'off');
+      // Turning sharing off also drops hands still waiting to be sent.
+      if (!v) remove(QUEUE_KEY);
       listeners.forEach((l) => l());
     },
   ];
@@ -65,17 +75,66 @@ export interface SharedHand {
   app: string;
 }
 
+// Hands wait here until they're sent, so hands played offline go out once the device is back online.
+const QUEUE_KEY = 'tressette.handsToSend';
+/** Enough for weeks of offline play; past it the oldest hands are dropped. */
+const MAX_QUEUED = 200;
+
+function queued(): SharedHand[] {
+  try {
+    const hands = JSON.parse(read(QUEUE_KEY) ?? '[]');
+    return Array.isArray(hands) ? hands : [];
+  } catch {
+    return [];
+  }
+}
+
+function setQueued(hands: SharedHand[]) {
+  if (hands.length) write(QUEUE_KEY, JSON.stringify(hands.slice(-MAX_QUEUED)));
+  else remove(QUEUE_KEY);
+}
+
+const sameHand = (a: SharedHand, b: SharedHand) => a.game === b.game && a.record.handNumber === b.record.handNumber;
+
+let flushing = false;
+
+/** Sends the waiting hands, oldest first, stopping at the first that can't get through so it's tried again later. */
+async function flush() {
+  if (!HANDS_URL || !on || flushing) return;
+  flushing = true;
+  try {
+    for (let hand = queued()[0]; hand; hand = queued()[0]) {
+      let res: Response;
+      try {
+        // keepalive: still delivered if the page is closing right after the hand.
+        res = await fetch(`${HANDS_URL}/hands`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(hand),
+          keepalive: true,
+        });
+      } catch {
+        return; // Offline or unreachable.
+      }
+      if (res.status === 429 || res.status >= 500) return;
+      // Stored, or refused for good (the Worker stores a hand once however often it's sent, so a resend is harmless).
+      const sent = hand;
+      setQueued(queued().filter((h) => !sameHand(h, sent)));
+    }
+  } finally {
+    flushing = false;
+  }
+}
+
 function send(hand: SharedHand) {
-  if (!HANDS_URL) return;
-  // keepalive: still delivered if the page is closing right after the hand.
-  void fetch(`${HANDS_URL}/hands`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(hand),
-    keepalive: true,
-  }).catch(() => {
-    // Sharing is best effort: a lost hand doesn't matter.
-  });
+  setQueued([...queued(), hand]);
+  void flush();
+}
+
+if (typeof window !== 'undefined') {
+  void flush();
+  window.addEventListener('online', () => void flush());
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void flush());
 }
 
 /**

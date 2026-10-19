@@ -106,7 +106,8 @@ export function Setup({
               With <em>Share hands</em> on, each 2-player hand you finish is sent to help train the bots: the deal, the cards
               everyone played, the score, which opponent you played, and a random id made by this browser (so hands
               from one player can be grouped). Nothing else: no name, account, location or IP address is stored. It's
-              off unless you turn it on, and you can turn it off any time.
+              off unless you turn it on, and you can turn it off any time. Hands played offline are sent once you're back
+              online; turning sharing off drops any still waiting.
             </p>
           </details>
         )}
