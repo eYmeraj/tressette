@@ -36,8 +36,10 @@ export function makeNeuralBot(weights: MlpWeights, id = 'neural'): Bot {
   return {
     id,
     name: 'Neural',
+    label: 'Neural',
     difficulty: 'Hard',
-    description: 'A network trained on the Stats bot’s games: plays on instinct, instantly.',
+    players: [weights.players],
+    description: 'A neural network trained by self-play: plays on instinct, instantly. 2 players only.',
     chooseMove: (v) => policy.move(v),
   };
 }
@@ -49,25 +51,30 @@ export interface NetSearchOptions {
   top?: number;
   /** Plays out the imagined deals; the same network if omitted. */
   rollout?: NetPolicy | ((v: SeatView) => BotMove);
+  /** Time limit per move (see StatsOptions.budget). */
+  budget?: { ms: number; minSamples: number };
 }
 
 /**
  * The Stats bot's search with the network's judgement: the network picks which cards are worth trying and plays
  * out the imagined deals, which it does far better than the classic bot. Exact in the 2-player endgame.
  */
-export function makeNetSearchBot(weights: MlpWeights, { samples, top, rollout }: NetSearchOptions, id = 'net-search'): Bot {
+export function makeNetSearchBot(weights: MlpWeights, { samples, top, rollout, budget }: NetSearchOptions, id = 'net-search'): Bot {
   const policy = makeNetPolicy(weights);
   const play = rollout === undefined ? policy.move : typeof rollout === 'function' ? rollout : rollout.move;
   return {
     id,
     name: 'Expert',
-    difficulty: 'Hard',
-    description: 'Imagines how the hidden cards could lie and plays each deal out with a trained network.',
+    label: 'Expert',
+    difficulty: 'Expert',
+    players: [weights.players],
+    description: 'Imagines how the hidden cards could lie and plays each deal out with the neural network. 2 players only.',
     chooseMove: makeStatsBot({
       samples,
       endgame: true,
       rollout: play,
       prune: top ? { top, prior: policy.scores } : undefined,
+      budget,
     }),
   };
 }

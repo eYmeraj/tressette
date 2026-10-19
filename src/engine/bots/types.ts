@@ -9,10 +9,13 @@ export interface BotMove {
 
 export interface Bot {
   id: string;
-  /** Shown on the setup screen. */
   name: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  /** Shown on the setup screen. */
+  label: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
   description: string;
+  /** The game sizes it can play; any if omitted. */
+  players?: readonly (2 | 4)[];
   /** Picks a move from what this seat can see; `rng` is for bots that sample or explore. */
   chooseMove(view: SeatView, rng: Rng): BotMove;
 }

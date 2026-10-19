@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SUITS, makeCard } from '../engine/cards';
 import { GameConfig, GameState } from '../engine/game';
-import { BOTS, BotId, DEFAULT_BOT, botFor } from '../engine/bots';
+import { BOTS, BotId, DEFAULT_BOT, botFor, botPlays } from '../engine/bots';
 import { teamNames } from '../labels';
 import { CardArt, CardView } from './Card';
 import { CardArtPicker } from './CardArtPicker';
@@ -34,7 +34,10 @@ export function Setup({
   const [signals, setSignals] = useState(true);
   const [bot, setBot] = useState<BotId>(DEFAULT_BOT);
 
-  const start = () => onStart({ players, targetScore, accusi, signals: players === 4 && signals, bot });
+  const bots = (Object.keys(BOTS) as BotId[]).filter((id) => botPlays(BOTS[id], players));
+  // A 2-player-only opponent chosen before switching to 4 players falls back to the default.
+  const chosen = bots.includes(bot) ? bot : DEFAULT_BOT;
+  const start = () => onStart({ players, targetScore, accusi, signals: players === 4 && signals, bot: chosen });
 
   return (
     <div className="setup-page">
@@ -52,10 +55,10 @@ export function Setup({
           <Choice label="Play to" value={targetScore} options={[21, 31, 41]} onChange={setTarget} />
           <Choice
             label="Opponents"
-            value={bot}
-            options={Object.keys(BOTS) as BotId[]}
+            value={chosen}
+            options={bots}
             onChange={setBot}
-            name={(id) => BOTS[id].difficulty}
+            name={(id) => BOTS[id].label}
             hint={(id) => BOTS[id].description}
           />
           <OnOff label="Accusi" on={accusi} onChange={setAccusi} hint="Napoletana, three or four Assi/2s/3s" />
@@ -168,7 +171,7 @@ function ContinueGame({ saved, onContinue, onNew }: { saved: GameState; onContin
         </button>
       </div>
       <p>
-        {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand {saved.handNumber} · {botFor(saved.config).difficulty}
+        {teams[0]} {saved.scores[0]} – {saved.scores[1]} {teams[1]} · hand {saved.handNumber} · {botFor(saved.config).label}
       </p>
     </section>
   );
