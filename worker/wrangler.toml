@@ -9,5 +9,5 @@ ALLOWED_ORIGINS = "https://eymeraj.github.io,http://localhost:5173"
 [[d1_databases]]
 binding = "DB"
 database_name = "tressette-hands"
-# Filled in from the output of `npx wrangler d1 create tressette-hands` (worker/README.md, step 2).
-database_id = "REPLACE_WITH_DATABASE_ID"
+# From `npx wrangler d1 create tressette-hands` (not secret: using it needs the account's credentials).
+database_id = "55ac663e-1e45-4878-a41a-7fd98d3c7599"
