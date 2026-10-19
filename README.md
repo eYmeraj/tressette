@@ -37,7 +37,7 @@ npm run arena -- --a classic --b classic --games 2000 --players 2   # compare tw
 
 ## Deploying
 
-Every push to `feature/tressette-game` runs the tests, builds the site and publishes it to GitHub Pages
+Every push to `main` runs the tests, builds the site and publishes it to GitHub Pages
 (`.github/workflows/deploy.yml`; it can also be run by hand from the Actions tab).
 
 `npm run build` produces a static site in `dist/` that any static host can serve.
