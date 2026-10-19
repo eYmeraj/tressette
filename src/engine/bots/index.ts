@@ -47,6 +47,7 @@ export const BOTS = {
     id: 'classic',
     name: 'Classic',
     label: 'Easy',
+    age: 5,
     difficulty: 'Easy',
     description: 'Plays by simple rules of thumb.',
     chooseMove: classicMove,
@@ -55,6 +56,7 @@ export const BOTS = {
     id: 'stats-medium',
     name: 'Stats',
     label: 'Medium',
+    age: 10,
     difficulty: 'Medium',
     description: 'Imagines a few dozen ways the hidden cards could lie and plays what works best.',
     chooseMove: makeStatsBot({ samples: 24, endgame: false }),
@@ -63,18 +65,19 @@ export const BOTS = {
     id: 'stats-hard',
     name: 'Stats',
     label: 'Hard',
+    age: 15,
     difficulty: 'Hard',
     description: 'Weighs hundreds of possible deals, and plays the 2-player endgame perfectly.',
     chooseMove: makeStatsBot({ samples: 120, endgame: true }),
   },
   // Trained by self-play (see ml/README.md); 2-player only, and they need prepareBot before their first move.
   neural: lazyBot(
-    { id: 'neural', name: 'Neural', label: 'Neural', difficulty: 'Hard', players: [2],
+    { id: 'neural', name: 'Neural', label: 'Neural', age: 20, difficulty: 'Hard', players: [2],
       description: 'A neural network trained by self-play: plays on instinct, instantly. 2 players only.' },
     async () => makeNeuralBot(await fetchWeights(weightsUrl), 'neural'),
   ),
   expert: lazyBot(
-    { id: 'expert', name: 'Expert', label: 'Expert', difficulty: 'Expert', players: [2],
+    { id: 'expert', name: 'Expert', label: 'Expert', age: 30, difficulty: 'Expert', players: [2],
       description: 'Imagines how the hidden cards could lie and plays each deal out with the neural network. 2 players only.' },
     // About 0.3 s a move on a desktop, at most ~0.8 s on slow devices.
     async () => makeNetSearchBot(await fetchWeights(weightsUrl), { samples: 40, top: 3, budget: { ms: 800, minSamples: 12 } }, 'expert'),

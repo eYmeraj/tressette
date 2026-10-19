@@ -8,6 +8,8 @@ import {
 import { HUMAN, useGame } from '../useGame';
 import { clearSavedGame, saveGame } from '../savedGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
+import { useSoundOn } from '../sounds';
+import { useGameSounds } from '../useGameSounds';
 import { AssoFlairContext, CardArt, CardView, DRAW_SPRING } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
@@ -67,6 +69,7 @@ export function GameScreen({
   // Everything waits while the settings dialog is open; a trick with the Asso di Coppe stays until its moment ends.
   const game = useGame(start, settingsOpen, holdForAsso);
   const { state } = game;
+  useGameSounds(state);
   // Every move is saved so the player can close the page and come back; a finished game is forgotten.
   useEffect(() => (state.phase === 'gameOver' ? clearSavedGame() : saveGame(state)), [state]);
   // A signal choice belongs to one lead; picking it for an earlier trick or hand doesn't carry over.
@@ -378,6 +381,7 @@ function Settings({
   onClose: () => void;
   onQuit: () => void;
 }) {
+  const [soundOn, setSoundOn] = useSoundOn();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -396,6 +400,10 @@ function Settings({
       >
         <h2 id="settings-title">Settings</h2>
         <p>The game is paused.</p>
+        <label className="settings-toggle">
+          <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
+          Sounds
+        </label>
         {onArtChange && (
           <>
             <h3>Card style</h3>

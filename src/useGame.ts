@@ -12,7 +12,7 @@ const BOT_DELAY_MS = 800;
 const TRICK_PAUSE_MS = 1400;
 const DEAL_STEP_MS = 70;
 /** How long drawn cards stay face up beside the deck before joining the hands. */
-const DRAW_SHOW_MS = 1300;
+const DRAW_SHOW_MS = 1560;
 
 function dealAll(s: GameState): GameState {
   while (s.phase === 'dealing') s = dealNext(s);
