@@ -3,12 +3,43 @@ import { seatView } from '../view';
 import { classicMove } from './classic';
 import { makeStatsBot } from './stats';
 import { makeNetSearchBot, makeNeuralBot } from './neural';
-import { MlpWeights } from '../ml/mlp';
-import weights2p from '../ml/weights-2p.json';
-import { Bot, applyMove } from './types';
+import type { MlpWeights } from '../ml/mlp';
+// Fetched only when a network bot first plays (see prepareBot), so the page doesn't download megabytes of weights
+// for players who never choose one.
+import weightsUrl from '../ml/weights-2p.json?url';
+import { Bot, BotMove, applyMove } from './types';
 
 export type { Bot, BotMove } from './types';
 export { applyMove } from './types';
+
+const fetched = new Map<string, Promise<MlpWeights>>();
+
+/** Downloads weights once per URL, however many bots use them. */
+function fetchWeights(url: string): Promise<MlpWeights> {
+  if (!fetched.has(url)) {
+    fetched.set(url, fetch(url).then((res) => {
+      if (!res.ok) throw new Error(`Couldn't load ${url}: ${res.status}`);
+      return res.json();
+    }));
+  }
+  return fetched.get(url)!;
+}
+
+const loaders = new Map<string, () => Promise<void>>();
+
+/** A bot whose real implementation is built asynchronously (downloading weights) by `prepareBot`. */
+function lazyBot(meta: Omit<Bot, 'chooseMove'>, load: () => Promise<Bot>): Bot {
+  let impl: Bot | null = null;
+  let loading: Promise<void> | null = null;
+  loaders.set(meta.id, () => (loading ??= load().then((b) => void (impl = b))));
+  return {
+    ...meta,
+    chooseMove(v, rng): BotMove {
+      if (!impl) throw new Error(`${meta.id} isn't loaded yet: await prepareBot('${meta.id}') first`);
+      return impl.chooseMove(v, rng);
+    },
+  };
+}
 
 /** Every opponent the player can choose, in the order the setup screen lists them. */
 export const BOTS = {
@@ -36,13 +67,26 @@ export const BOTS = {
     description: 'Weighs hundreds of possible deals, and plays the 2-player endgame perfectly.',
     chooseMove: makeStatsBot({ samples: 120, endgame: true }),
   },
-  // Trained by self-play (see ml/README.md); 2-player only.
-  neural: makeNeuralBot(weights2p as MlpWeights, 'neural'),
-  // At most ~0.8 s a move on slow devices; a desktop finishes all 100 samples well within it.
-  expert: makeNetSearchBot(weights2p as MlpWeights, { samples: 100, top: 3, budget: { ms: 800, minSamples: 16 } }, 'expert'),
+  // Trained by self-play (see ml/README.md); 2-player only, and they need prepareBot before their first move.
+  neural: lazyBot(
+    { id: 'neural', name: 'Neural', label: 'Neural', difficulty: 'Hard', players: [2],
+      description: 'A neural network trained by self-play: plays on instinct, instantly. 2 players only.' },
+    async () => makeNeuralBot(await fetchWeights(weightsUrl), 'neural'),
+  ),
+  expert: lazyBot(
+    { id: 'expert', name: 'Expert', label: 'Expert', difficulty: 'Expert', players: [2],
+      description: 'Imagines how the hidden cards could lie and plays each deal out with the neural network. 2 players only.' },
+    // About 0.3 s a move on a desktop, at most ~0.8 s on slow devices.
+    async () => makeNetSearchBot(await fetchWeights(weightsUrl), { samples: 40, top: 3, budget: { ms: 800, minSamples: 12 } }, 'expert'),
+  ),
 } satisfies Record<string, Bot>;
 
 export type BotId = keyof typeof BOTS;
+
+/** Gets a bot ready to play: downloads a network bot's weights the first time; instant for the others. */
+export function prepareBot(id: BotId): Promise<void> {
+  return loaders.get(id)?.() ?? Promise.resolve();
+}
 
 export const DEFAULT_BOT: BotId = 'classic';
 
