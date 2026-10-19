@@ -10,6 +10,7 @@ import { clearSavedGame, saveGame } from '../savedGame';
 import { SIGNALS, seatNames, teamNames } from '../labels';
 import { useSoundOn } from '../sounds';
 import { useGameSounds } from '../useGameSounds';
+import { useHandSharing } from '../sharing';
 import { AssoFlairContext, CardArt, CardView, DRAW_SPRING } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
@@ -70,6 +71,7 @@ export function GameScreen({
   const game = useGame(start, settingsOpen, holdForAsso);
   const { state } = game;
   useGameSounds(state);
+  useHandSharing(state);
   // Every move is saved so the player can close the page and come back; a finished game is forgotten.
   useEffect(() => (state.phase === 'gameOver' ? clearSavedGame() : saveGame(state)), [state]);
   // A signal choice belongs to one lead; picking it for an earlier trick or hand doesn't carry over.

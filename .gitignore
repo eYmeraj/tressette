@@ -8,3 +8,5 @@ __pycache__
 ml/logs
 ml/models
 ml/loop
+.env.local
+worker/.wrangler

@@ -27,6 +27,10 @@ jobs:
       - run: npm test
       # Pages serves the site under /<repo>/, so asset URLs need that prefix.
       - run: npm run build -- --base=/${{ github.event.repository.name }}/
+        env:
+          VITE_APP_VERSION: ${{ github.sha }}
+          # The hand-sharing Worker's URL (worker/README.md); without it the site doesn't offer sharing.
+          VITE_HANDS_URL: ${{ vars.HANDS_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

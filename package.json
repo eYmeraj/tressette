@@ -13,7 +13,8 @@
     "selfplay": "vite-node scripts/selfplay.ts --",
     "export-perms": "vite-node scripts/export-perms.ts --",
     "movetime": "vite-node scripts/movetime.ts --",
-    "derive-features": "vite-node scripts/derive-features.ts --"
+    "derive-features": "vite-node scripts/derive-features.ts --",
+    "human-hands": "vite-node scripts/human-hands.ts --"
   },
   "dependencies": {
     "framer-motion": "^11.18.2",

@@ -4,6 +4,7 @@ import { GameConfig, GameState } from '../engine/game';
 import { BOTS, BotId, DEFAULT_BOT, botFor, botPlays } from '../engine/bots';
 import { endiName, teamNames } from '../labels';
 import { useSoundOn } from '../sounds';
+import { HANDS_URL, useShareHands } from '../sharing';
 import { CardArt, CardView } from './Card';
 import { CardArtPicker } from './CardArtPicker';
 import { CoffeeStain } from './CoffeeStain';
@@ -35,6 +36,7 @@ export function Setup({
   const [signals, setSignals] = useState(true);
   const [bot, setBot] = useState<BotId>(DEFAULT_BOT);
   const [soundOn, setSoundOn] = useSoundOn();
+  const [share, setShare] = useShareHands();
 
   const bots = (Object.keys(BOTS) as BotId[]).filter((id) => botPlays(BOTS[id], players));
   // A 2-player-only opponent chosen before switching to 4 players falls back to the default.
@@ -78,6 +80,14 @@ export function Setup({
             onChange={onAssoEffectsChange}
             hint="Its shine, the Brava torta! celebration and the biscotto (2-player games)"
           />
+          {HANDS_URL && (
+            <OnOff
+              label="Share hands"
+              on={share}
+              onChange={setShare}
+              hint="Anonymously share the cards played in your hands to help train the bots"
+            />
+          )}
           {onArtChange && <CardArtPicker value={art} onChange={onArtChange} />}
         </div>
 
@@ -87,6 +97,18 @@ export function Setup({
           <button type="button" className="primary play" onClick={start}>
             Play
           </button>
+        )}
+
+        {HANDS_URL && (
+          <details className="rules">
+            <summary>Sharing hands</summary>
+            <p>
+              With <em>Share hands</em> on, each hand you finish is sent to help train the bots: the deal, the cards
+              everyone played, the score, which opponent you played, and a random id made by this browser (so hands
+              from one player can be grouped). Nothing else: no name, account, location or IP address is stored. It's
+              off unless you turn it on, and you can turn it off any time.
+            </p>
+          </details>
         )}
 
         <details className="rules">
