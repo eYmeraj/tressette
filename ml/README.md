@@ -11,16 +11,30 @@ All 2-player, to 31, no accusi. Each seed is played twice with the bots swapping
 bot's points per hand minus its opponent's, with a 95% interval from those pairs (ml/gauntlet.py; every result
 is in `results.jsonl`).
 
+**Shipped** (`src/engine/ml/weights-2p.json`, a 512×3 network trained on expert-iteration generations 1–4):
+
 | Bot | vs | Games | Wins | Margin (pts/hand) |
 |---|---|---|---|---|
-| v0 network (no augmentation) | Classic | 2000 | 96.3% ± 0.8% | +2.26 ± 0.05 |
-| v0 network | Stats Medium | 400 | 89.0% ± 3.1% | +1.63 ± 0.12 |
-| v0 network | Stats Hard | 200 | 39.0% ± 6.8% | −0.34 |
-| v1 network (suit augmentation) | Classic | 2000 | 99.7% ± 0.3% | +3.52 ± 0.04 |
-| v1 network | v0 network | 4000 | 69.8% ± 1.4% | +0.64 ± 0.04 |
-| Search with v0 network (30 samples, top 3) | Stats Hard | 200 | 79.0% ± 5.6% | +0.81 ± 0.14 |
+| Neural (network alone, instant) | Classic | 2000 | 99.9% ± 0.1% | +3.54 ± 0.04 |
+| Neural | Stats Medium | 800 | 99.8% ± 0.3% | +3.42 ± 0.07 |
+| Neural | Stats Hard | 400 | 86.2% ± 3.4% | +1.29 ± 0.11 |
+| Expert (search: 40 samples, top 3) | Stats Hard | 400 | 89.2% ± 3.0% | +1.44 ± 0.10 |
+| Expert | search with gen-04 (100 samples, top 3) | 300 | 48.7% ± 5.7% | −0.09 ± 0.14 |
 
-Expert-iteration generations are in `loop/state.json` (history) and `results.jsonl` (label "loop gen N gate").
+**How it got there:**
+
+| Step | Network | Result |
+|---|---|---|
+| Copy the Stats bot | v0, 256×2 | 96% vs Classic, 39% vs Stats Hard |
+| Suit augmentation | v1, 256×2 | +0.64 pts/hand vs v0 |
+| Expert iteration, generation 1 | gen-01, 256×2 | +0.81 vs v1 |
+| generation 2 | gen-02 | +0.23 vs gen-01 |
+| generation 3 | gen-03 | +0.06 vs gen-02 |
+| generation 4 | gen-04 | +0.01 ± 0.03 vs gen-03 (plateau: loop paused) |
+| Bigger network on all the loop's data | big-g1234, 512×3 | +0.27 vs gen-04 → shipped |
+
+Search with the first network (30 samples, top 3) already beat Stats Hard 79% (+0.81); with the shipped network
+the search adds little over the network alone (+1.44 vs +1.29 against Hard).
 
 ## What made a difference
 
@@ -37,9 +51,18 @@ Expert-iteration generations are in `loop/state.json` (history) and `results.jso
 
 ## What didn't (much)
 
-- **Bigger networks**: 512×3 is only slightly better than 256×2 (+0.71 vs +0.64 pts/hand against v0) and several
-  times slower per move, which the search pays thousands of times a decision. 256×2 stays.
+- **Bigger networks, early on**: with the first 190k positions, 512×3 was only slightly better than 256×2. With the
+  loop's ~550k positions it pays off (+0.27 pts/hand), so the shipped network is 512×3. It is ~3× slower per
+  play-out, so Expert imagines fewer deals in the same time.
+- **More loop generations with the same settings**: gains shrank to nothing by generation 4.
 - **More epochs**: validation stops improving after ~10–20 epochs.
+
+## Ideas for later
+
+- A stronger teacher to restart the loop (more samples per move, or the 512×3 network playing out the deals),
+  since the 256×2 search teacher has plateaued. `loop/state.json` is paused at generation 5 and resumes.
+- Expert with more samples: at 40 the search barely improves on the network alone.
+- A 4-player model (same pipeline with `--players 4`).
 
 ## Pipeline
 
