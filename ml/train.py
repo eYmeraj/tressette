@@ -160,7 +160,8 @@ def main():
     tx, tmask, tq = (torch.from_numpy(a).to(device) for a in (x, mask, q / Q_SCALE))
     val = tuple(torch.from_numpy(a).to(device) for a in (vx, vmask, vq))
     perms = json.loads((HERE / f"perms-{players}p.json").read_text())
-    fmap = torch.tensor([m["features"] for m in perms["maps"]], device=device)
+    # Data recorded before newer (later) feature blocks existed uses a prefix of the layout; its maps stay within it.
+    fmap = torch.tensor([m["features"][:features] for m in perms["maps"]], device=device)
     amap = torch.tensor([m["actions"] for m in perms["maps"]], device=device)
 
     net = QNet(features, mask.shape[1], args.hidden, args.layers).to(device)

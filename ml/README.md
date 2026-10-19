@@ -56,6 +56,9 @@ the search adds little over the network alone (+1.44 vs +1.29 against Hard).
   loop's ~550k positions it pays off (+0.27 pts/hand), so the shipped network is 512×3. It is ~3× slower per
   play-out, so Expert imagines fewer deals in the same time.
 - **More loop generations with the same settings**: gains shrank to nothing by generation 4.
+- **Derived per-suit inputs** (cards and points still out, who holds the top card, 20 numbers on top of the 258):
+  +0.03 ± 0.02 pts/hand head to head with the same data and settings. The network already works them out; they
+  stay in the encoder for future training, but the shipped network wasn't replaced for so little.
 - **More epochs**: validation stops improving after ~10–20 epochs.
 
 ## Ideas for later
