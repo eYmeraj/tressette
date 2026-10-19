@@ -64,7 +64,7 @@ export function Setup({
             hint={(id) => BOTS[id].description}
           />
           <div className="option-row">
-            <span />
+            <span className="option-spacer" />
             <span className="opponent-name">You play {endiName(BOTS[chosen])}</span>
           </div>
           <OnOff label="Accusi" on={accusi} onChange={setAccusi} hint="Napoletana, three or four Assi/2s/3s" />
