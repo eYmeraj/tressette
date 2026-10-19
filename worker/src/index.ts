@@ -19,6 +19,24 @@ function cors(origin: string | null, env: Env): Record<string, string> {
     : {};
 }
 
+/** The body as text, or null if it's over `max` bytes; it stops reading there, whatever content-length says. */
+async function readBody(req: Request, max: number): Promise<string | null> {
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return new Blob(chunks).text();
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+}
+
 function fail(why: string): never {
   throw new Error(why);
 }
@@ -67,10 +85,10 @@ export default {
     if (!headers['access-control-allow-origin']) return new Response('Origin not allowed', { status: 403 });
     const { success } = await env.LIMITER.limit({ key: req.headers.get('cf-connecting-ip') ?? 'unknown' });
     if (!success) return new Response('Too many hands, slow down', { status: 429, headers });
-    // Refuse oversized bodies before reading them (and again after, in case the header was missing or wrong).
+    // Refuse oversized bodies up front when they say so, and otherwise stop reading once they pass the limit.
     if (Number(req.headers.get('content-length') ?? 0) > MAX_BYTES) return new Response('Too large', { status: 413, headers });
-    const raw = await req.text();
-    if (raw.length > MAX_BYTES) return new Response('Too large', { status: 413, headers });
+    const raw = await readBody(req, MAX_BYTES);
+    if (raw === null) return new Response('Too large', { status: 413, headers });
 
     try {
       const body = JSON.parse(raw) as Record<string, unknown>;
