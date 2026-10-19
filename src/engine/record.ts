@@ -3,7 +3,7 @@ import { GameConfig, GameState, Signal, callAccusi, collectAndDraw, dealFrom, de
 
 /**
  * One finished hand, enough to replay it exactly: the deck as it was dealt, then every card played in order.
- * Players share these (if they opt in) to help train the bots; see worker/ and scripts/human-hands.ts.
+ * Players share these (unless they turn it off) to help train the bots; see worker/ and scripts/human-hands.ts.
  */
 export interface HandRecord {
   v: 1;
