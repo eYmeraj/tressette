@@ -3,7 +3,7 @@ import { Bot, botFor } from './engine/bots';
 
 /** The opponent you face: Endi, at a later life stage the stronger the bot. */
 export function endiName(bot: Bot): string {
-  return `${bot.endis_life_stage} Endi`;
+  return `${bot.endisLifeStage} Endi`;
 }
 
 export function seatNames(config: GameConfig): string[] {
