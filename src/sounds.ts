@@ -1,41 +1,10 @@
 /// Game sounds, synthesised with the Web Audio API: no files to download.
-import { useSyncExternalStore } from 'react';
+import { storedFlag } from './settings';
 
-const KEY = 'tressette.sound';
-
-function savedOn(): boolean {
-  try {
-    return localStorage.getItem(KEY) !== 'off';
-  } catch {
-    // Storage can be unavailable (private mode, blocked site data): sounds stay on.
-    return true;
-  }
-}
-
-let on = savedOn();
-const listeners = new Set<() => void>();
-
-export function setSoundOn(value: boolean) {
-  on = value;
-  try {
-    localStorage.setItem(KEY, value ? 'on' : 'off');
-  } catch {
-    // Not remembering the choice is fine.
-  }
-  listeners.forEach((l) => l());
-}
-
+const sound = storedFlag('tressette.sound', true);
+export const setSoundOn = sound.set;
 /** The sound setting, kept in step across every component that shows it. */
-export function useSoundOn(): [boolean, (on: boolean) => void] {
-  const value = useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => on,
-  );
-  return [value, setSoundOn];
-}
+export const useSoundOn = sound.use;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -43,7 +12,7 @@ let noise: AudioBuffer | null = null;
 
 /** The audio context, made on first use (after the player has clicked, so browsers allow it to play). */
 function audio(): { ctx: AudioContext; out: GainNode; noise: AudioBuffer } | null {
-  if (!on) return null;
+  if (!sound.get()) return null;
   try {
     if (!ctx) {
       ctx = new AudioContext();

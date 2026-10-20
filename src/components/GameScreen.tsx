@@ -11,7 +11,7 @@ import { SIGNALS, seatNames, teamNames } from '../labels';
 import { useSoundOn } from '../sounds';
 import { useGameSounds } from '../useGameSounds';
 import { useHandSharing } from '../sharing';
-import { AssoFlairContext, CardArt, CardView, DRAW_SPRING } from './Card';
+import { AssoFlairContext, CardArt, CardView, DRAW_SPRING, useAssoEffects } from './Card';
 import { AssoDiCoppeMoment } from './AssoDiCoppe';
 import { CardArtPicker } from './CardArtPicker';
 import { CoffeeStain } from './CoffeeStain';
@@ -43,21 +43,19 @@ const collectVariants: Variants = {
 
 export function GameScreen({
   start,
-  assoEffects,
   art,
   onArtChange,
   onQuit,
 }: {
   /** A freshly dealt game or one restored from the save. */
   start: GameState;
-  /** The player's home-screen choice to show the Asso di Coppe's flair and moments. */
-  assoEffects: boolean;
   art: CardArt;
   onArtChange?: (art: CardArt) => void;
   onQuit: () => void;
 }) {
   const { config } = start;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [assoEffects] = useAssoEffects();
   // The Asso di Coppe's flair and its moment belong to the 2-player game only, and can be switched off.
   const assoFeature = assoEffects && config.players === 2;
   // The trick whose Asso di Coppe moment has been shown. Each trick is a new array, so a new game never matches.
@@ -102,7 +100,7 @@ export function GameScreen({
 
   return (
     <AssoFlairContext.Provider value={assoFeature}>
-      <div className="game">
+      <div className={`game players-${config.players}`}>
         <section className="table">
           <CoffeeStain />
           {pos.map((p, seat) =>
@@ -317,12 +315,23 @@ function Opponent({
 }) {
   const active = state.phase === 'playing' && state.turn === seat;
   const partner = state.config.players === 4 && teamOf(state.config, seat) === teamOf(state.config, HUMAN);
+  // Accusi are announced to the whole table, so they stay in view for the rest of the hand.
+  const called = state.accusiCalls.find((c) => c.seat === seat)?.accusi ?? [];
   return (
     <div className={`seat seat-${position}`}>
       <div className={`nameplate ${active ? 'active' : ''} team-${teamOf(state.config, seat)}`}>
         {name}
         {partner && <small> (partner)</small>}
       </div>
+      {called.length > 0 && (
+        <div className="accusi-called" aria-label={`${name} called`}>
+          {called.map((a) => (
+            <span key={a.label}>
+              {a.label} +{a.points}
+            </span>
+          ))}
+        </div>
+      )}
       <div className={`backs ${position === 'left' || position === 'right' ? 'vertical' : ''}`}>
         {visibleHand(state, seat).map((c) => (
           <CardView
@@ -344,8 +353,8 @@ function LastTrick({ trick }: { trick?: CompletedTrick }) {
   if (!trick) return null;
   const winner = winningPlayIndex(trick.plays);
   return (
-    <div className="last-hand" aria-label="Last hand">
-      <span>Last hand</span>
+    <div className="last-hand" aria-label="Last trick">
+      <span>Last trick</span>
       <div className="mini-cards">
         {trick.plays.map((p, i) => (
           <CardView key={p.card.id} card={p.card} className={i === winner ? 'mini winner' : 'mini'} />

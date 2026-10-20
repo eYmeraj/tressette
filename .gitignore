@@ -9,5 +9,6 @@ ml/logs
 ml/models
 ml/loop
 .env.local
+.env.development.local
 worker/.wrangler
 worker/.dev.vars

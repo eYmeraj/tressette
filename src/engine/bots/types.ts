@@ -7,19 +7,22 @@ export interface BotMove {
   callAccusi: boolean;
 }
 
-export interface Bot {
+/** Something that plays: the command-line tools use these directly (scripts/botspec.ts). */
+export interface Player {
   id: string;
-  name: string;
-  /** Shown on the setup screen. */
+  /** Picks a move from what this seat can see; `rng` is for bots that sample or explore. */
+  chooseMove(view: SeatView, rng: Rng): BotMove;
+}
+
+/** An opponent the player can choose (see BOTS). */
+export interface Bot extends Player {
+  /** The difficulty, shown on the setup screen. */
   label: string;
   /** Endi at the life stage this bot plays like: the opponent is called "<stage> Endi". */
   endisLifeStage: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert' | 'Master';
   description: string;
   /** The game sizes it can play; any if omitted. */
   players?: readonly (2 | 4)[];
-  /** Picks a move from what this seat can see; `rng` is for bots that sample or explore. */
-  chooseMove(view: SeatView, rng: Rng): BotMove;
 }
 
 /** Plays a chosen move for `seat`: call any accusi, then the card. */

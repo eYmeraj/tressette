@@ -1,11 +1,11 @@
 # Hand sharing (Cloudflare Worker + D1)
 
-Unless players turn off "Share hands" on the setup screen, the app sends each 2-player hand they finish to help
+When players turn on "Share hands" on the setup screen (it starts off), the app sends each 2-player hand they finish to help
 train the bots (only 2-player hands for now, since the ML bots are 2-player only; the app doesn't send others and the Worker
 rejects them). The app sends a `HandRecord` (`src/engine/record.ts`: the deal and every card played) plus an
 anonymous browser id, a game id, the opponent and the app version. This Worker replays each hand with the game's own engine, rejects
 anything impossible, and stores it in a D1 (SQLite) database. Nothing is sent unless the site was built with
-`VITE_HANDS_URL` and the player hasn't turned sharing off.
+`VITE_HANDS_URL` and the player has turned sharing on.
 
 ## One-time setup
 
@@ -37,7 +37,8 @@ cd worker
 cp .dev.vars.example .dev.vars                                   # allows http://localhost:5173, locally only
 npx wrangler d1 execute tressette-hands --local --file schema.sql
 npx wrangler dev                                                 # http://localhost:8787
-# in the project root, .env.local:  VITE_HANDS_URL=http://localhost:8787   then npm run dev
+# in the project root, .env.development.local (read by npm run dev only, never by a build):
+#   VITE_HANDS_URL=http://localhost:8787   then npm run dev
 npx wrangler d1 execute tressette-hands --local --command "SELECT * FROM hands"
 ```
 

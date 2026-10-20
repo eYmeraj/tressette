@@ -6,15 +6,13 @@
  * Usage: npm run -s human-hands -- --in hands.json --out ml/data/human-1 [--teacher "search:src/engine/ml/weights-2p.json,samples=40"] [--seats all|human]
  *
  * --in is the JSON printed by `npx wrangler d1 execute tressette-hands --remote --json --command "SELECT record FROM hands WHERE players = 2"`.
- * Writes the same files as scripts/selfplay.ts (x.f32, mask.u8, q.f32, z.f32, meta.json), so train.py reads it as is.
+ * Writes the same files as scripts/selfplay.ts (x.f32, mask.u8, q.f32, meta.json), so train.py reads it as is.
  */
 import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { cardIndex } from '../src/engine/cards';
-import { GameState, callAccusi, collectAndDraw, dealFrom, dealNext, playCard, teamOf } from '../src/engine/game';
 import { HandRecord, replayHand } from '../src/engine/record';
 import { seededRng } from '../src/engine/random';
-import { DECK } from '../src/engine/cards';
 import { legalPlays, seatView } from '../src/engine/view';
 import { ACTIONS, encode, featureCount, legalMask } from '../src/engine/ml/encode';
 import { scorerFromSpec } from './botspec';
@@ -32,7 +30,6 @@ const teacher = arg('teacher', 'search:src/engine/ml/weights-2p.json,samples=40'
 const seats = arg('seats', 'all');
 const score = scorerFromSpec(teacher);
 const rng = seededRng(1);
-const LAST_TRICK_BONUS = 3;
 
 // wrangler prints [{ results: [{ record: "..." }, ...], ... }]
 const exported = JSON.parse(readFileSync(input, 'utf8'));
@@ -42,41 +39,29 @@ const records: HandRecord[] = (Array.isArray(exported) ? exported : [exported])
   .filter((r: HandRecord) => r.config.players === 2);
 
 mkdirSync(out, { recursive: true });
-const files = Object.fromEntries(['x.f32', 'mask.u8', 'q.f32', 'z.f32'].map((f) => [f, openSync(join(out, f), 'w')]));
+const files = Object.fromEntries(['x.f32', 'mask.u8', 'q.f32'].map((f) => [f, openSync(join(out, f), 'w')]));
 const write = (file: string, data: Float32Array | Uint8Array) => writeSync(files[file], new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
-const BY_ID = new Map(DECK.map((c) => [c.id, c]));
 
 let rows = 0;
 let skipped = 0;
 for (const r of records) {
+  const decisions: { x: Float32Array; mask: Uint8Array; q: Float32Array }[] = [];
   try {
-    replayHand(r); // reject anything that doesn't replay before spending search time on it
-  } catch {
-    skipped++;
-    continue;
-  }
-  let s: GameState = dealFrom(r.config, r.dealer, r.handNumber, r.scores, r.deck.map((id) => BY_ID.get(id)!));
-  while (s.phase === 'dealing') s = dealNext(s);
-  const toCall = new Set(r.accusi);
-  const decisions: { team: number; x: Float32Array; mask: Uint8Array; q: Float32Array }[] = [];
-  for (const p of r.plays) {
-    if (toCall.delete(p.seat)) s = callAccusi(s, p.seat);
-    const v = seatView(s, p.seat);
-    if (legalPlays(v).length > 1 && (seats === 'all' || p.seat === 0)) {
+    replayHand(r, (s, p) => {
+      const v = seatView(s, p.seat);
+      if (legalPlays(v).length < 2 || (seats !== 'all' && p.seat !== 0)) return;
       const q = new Float32Array(ACTIONS);
       for (const { card, score: sc } of score(v, rng)) q[cardIndex(card)] = sc;
-      decisions.push({ team: teamOf(r.config, p.seat), x: encode(v), mask: legalMask(v), q });
-    }
-    s = playCard(s, p.seat, p.card, p.signal);
-    if (s.phase === 'trickComplete') s = collectAndDraw(s);
+      decisions.push({ x: encode(v), mask: legalMask(v), q });
+    });
+  } catch {
+    skipped++; // a hand that doesn't replay is left out
+    continue;
   }
-  const res = s.handResult!;
-  const total = (t: number) => res.cardThirds[t] + (res.lastTrickTeam === t ? LAST_TRICK_BONUS : 0);
   for (const d of decisions) {
     write('x.f32', d.x);
     write('mask.u8', d.mask);
     write('q.f32', d.q);
-    write('z.f32', new Float32Array([total(d.team) - total(1 - d.team)]));
   }
   rows += decisions.length;
 }

@@ -1,6 +1,6 @@
 # Tressette
 
-The Italian trick-taking card game in the browser, with the standard Piacentine deck (public-domain scan, see CREDITS.md) or an Engraved version of it (gold on suit-coloured grounds), chosen at setup or in Settings.
+The Italian trick-taking card game in the browser, with the standard Piacentine deck (public-domain scan, see CREDITS.md). An Engraved version of it (gold on suit-coloured grounds) is in `public/cards-illustrated/` but parked: no one can choose it for now (`CARD_ART_CHOICE` in `src/App.tsx`).
 Play 2-player (head to head, drawing from the deck) or 4-player (2 vs 2) against AI bots, from simple rules of
 thumb up to a neural network trained by self-play: see [BOTS.md](BOTS.md) for who you're playing against.
 
@@ -15,7 +15,7 @@ npm run arena -- --a classic --b classic --games 2000 --players 2   # compare tw
 ## On a phone, offline
 
 The site installs as an app and then plays with no connection: a service worker (`src/pwa.ts`, configured in
-`vite.config.ts`) keeps every file, both decks and the neural bots' weights on the device. Open the site once online, then:
+`vite.config.ts`) keeps every file, the deck and the neural bots' weights on the device. Open the site once online, then:
 
 - **iPhone / iPad (Safari):** Share button → *Add to Home Screen* → *Add*. If the sheet shows *Open as Web App*, leave it on.
 - **Android (Chrome):** ⋮ menu → *Add to Home screen* (or *Install app*) → *Install*.

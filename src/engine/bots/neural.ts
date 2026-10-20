@@ -3,7 +3,7 @@ import { encode } from '../ml/encode';
 import { MlpWeights, makeMlp } from '../ml/mlp';
 import { SeatView, legalPlays } from '../view';
 import { makeStatsBot, moveWith } from './stats';
-import { Bot, BotMove } from './types';
+import { BotMove, Player } from './types';
 
 export interface NetPolicy {
   /** The network's score for every card, by DECK index (only the legal ones mean anything). */
@@ -33,18 +33,9 @@ export function makeNetPolicy(weights: MlpWeights): NetPolicy {
 }
 
 /** Plays the legal card a trained network scores highest (see ml/train.py): no search, one forward pass a move. */
-export function makeNeuralBot(weights: MlpWeights, id = 'neural'): Bot {
+export function makeNeuralBot(weights: MlpWeights, id = 'neural'): Player {
   const policy = makeNetPolicy(weights);
-  return {
-    id,
-    name: 'Neural',
-    label: 'Expert',
-    endisLifeStage: 'Uni',
-    difficulty: 'Expert',
-    players: [weights.players],
-    description: 'Learned by playing itself for thousands of hands: plays on instinct, instantly. 2 players only.',
-    chooseMove: (v) => policy.move(v),
-  };
+  return { id, chooseMove: (v) => policy.move(v) };
 }
 
 export interface NetSearchOptions {
@@ -62,17 +53,11 @@ export interface NetSearchOptions {
  * The Stats bot's search with the network's judgement: the network picks which cards are worth trying and plays
  * out the imagined deals, which it does far better than the classic bot. Exact in the 2-player endgame.
  */
-export function makeNetSearchBot(weights: MlpWeights, { samples, top, rollout, budget }: NetSearchOptions, id = 'net-search'): Bot {
+export function makeNetSearchBot(weights: MlpWeights, { samples, top, rollout, budget }: NetSearchOptions, id = 'net-search'): Player {
   const policy = makeNetPolicy(weights);
   const play = rollout === undefined ? policy.move : typeof rollout === 'function' ? rollout : rollout.move;
   return {
     id,
-    name: 'Expert',
-    label: 'Master',
-    endisLifeStage: 'Habibi',
-    difficulty: 'Master',
-    players: [weights.players],
-    description: 'Plays on instinct too, then imagines how the hidden cards could lie and checks its choice. 2 players only.',
     chooseMove: makeStatsBot({
       samples,
       endgame: true,

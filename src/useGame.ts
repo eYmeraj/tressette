@@ -13,6 +13,8 @@ const TRICK_PAUSE_MS = 1400;
 const DEAL_STEP_MS = 70;
 /** How long drawn cards stay face up beside the deck before joining the hands. */
 const DRAW_SHOW_MS = 1560;
+/** How long to wait before asking a bot again when it couldn't move (e.g. offline while its weights download). */
+const BOT_RETRY_MS = 3000;
 
 function dealAll(s: GameState): GameState {
   while (s.phase === 'dealing') s = dealNext(s);
@@ -26,6 +28,8 @@ function dealAll(s: GameState): GameState {
  */
 export function useGame(start: GameState, paused = false, holdTrick?: (s: GameState) => boolean) {
   const [state, setState] = useState(start);
+  // Bumped to ask a bot again after a failed move.
+  const [botRetry, setBotRetry] = useState(0);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -48,6 +52,8 @@ export function useGame(start: GameState, paused = false, holdTrick?: (s: GameSt
         if (cancelled) return;
         const wait = Math.max(0, BOT_DELAY_MS - (performance.now() - started));
         timer = window.setTimeout(() => setState((s) => (s === state ? applyMove(s, seat, move) : s)), wait);
+      }, () => {
+        if (!cancelled) timer = window.setTimeout(() => setBotRetry((n) => n + 1), BOT_RETRY_MS);
       });
       return () => {
         cancelled = true;
@@ -55,7 +61,7 @@ export function useGame(start: GameState, paused = false, holdTrick?: (s: GameSt
       };
     }
     return () => window.clearTimeout(timer);
-  }, [state, reducedMotion, paused, holdTrick]);
+  }, [state, reducedMotion, paused, holdTrick, botRetry]);
 
   return {
     state,

@@ -5,7 +5,7 @@ import { BOTS, BotId, DEFAULT_BOT, botFor, botPlays } from '../engine/bots';
 import { endiName, teamNames } from '../labels';
 import { useSoundOn } from '../sounds';
 import { HANDS_URL, useShareHands } from '../sharing';
-import { CardArt, CardView } from './Card';
+import { CardArt, CardView, useAssoEffects } from './Card';
 import { CardArtPicker } from './CardArtPicker';
 import { CoffeeStain } from './CoffeeStain';
 
@@ -17,8 +17,6 @@ export function Setup({
   saved,
   onContinue,
   onStart,
-  assoEffects,
-  onAssoEffectsChange,
 }: {
   art: CardArt;
   /** Omitted while the card-style choice is parked. */
@@ -27,8 +25,6 @@ export function Setup({
   saved: GameState | null;
   onContinue: (game: GameState) => void;
   onStart: (config: GameConfig) => void;
-  assoEffects: boolean;
-  onAssoEffectsChange: (on: boolean) => void;
 }) {
   const [players, setPlayers] = useState<2 | 4>(2);
   const [targetScore, setTarget] = useState(31);
@@ -37,6 +33,7 @@ export function Setup({
   const [bot, setBot] = useState<BotId>(DEFAULT_BOT);
   const [soundOn, setSoundOn] = useSoundOn();
   const [share, setShare] = useShareHands();
+  const [assoEffects, setAssoEffects] = useAssoEffects();
 
   const bots = (Object.keys(BOTS) as BotId[]).filter((id) => botPlays(BOTS[id], players));
   // A 2-player-only opponent chosen before switching to 4 players falls back to the default.
@@ -77,7 +74,7 @@ export function Setup({
           <OnOff
             label="I love Asso di Coppe"
             on={assoEffects}
-            onChange={onAssoEffectsChange}
+            onChange={setAssoEffects}
             hint="Its shine, the Brava torta! celebration and the biscotto (2-player games)"
           />
           {HANDS_URL && (
@@ -106,8 +103,8 @@ export function Setup({
               With <em>Share hands</em> on, each 2-player hand you finish is sent to help train the bots: the deal, the cards
               everyone played, the score, which opponent you played, and a random id made by this browser (so hands
               from one player can be grouped). Nothing else: no name, account, location or IP address is stored. It's
-              on by default, and you can turn it off any time. Hands played offline are sent once you're back
-              online; turning sharing off drops any still waiting.
+              off until you turn it on, and you can turn it off again any time. Hands played offline are sent once
+              you're back online; turning sharing off drops any still waiting.
             </p>
           </details>
         )}

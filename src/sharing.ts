@@ -1,62 +1,19 @@
-/// Sharing finished hands (on unless turned off) to help train the bots. Sends only the cards and plays, an anonymous
+/// Sharing finished hands (if the player turns it on) to help train the bots. Sends only the cards and plays, an anonymous
 /// random id, and which bot was played; never anything about the person. The setup screen explains it ("Sharing hands").
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef } from 'react';
 import { GameState } from './engine/game';
 import { HandRecord, recordHand } from './engine/record';
 import { botIdFor } from './engine/bots';
+import { read, remove, storedFlag, write } from './settings';
 
 /** Where hands are sent (the Cloudflare Worker in worker/); without it the option isn't offered at all. */
 export const HANDS_URL: string | undefined = import.meta.env.VITE_HANDS_URL || undefined;
-const KEY = 'tressette.shareHands';
 const PLAYER_KEY = 'tressette.playerId';
 
-function read(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function write(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Not remembering is fine.
-  }
-}
-
-function remove(key: string) {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    // Nothing to forget.
-  }
-}
-
-// On by default: only an explicit 'off' (the player turned it off) disables it.
-let on = read(KEY) !== 'off';
-const listeners = new Set<() => void>();
-
-export function useShareHands(): [boolean, (on: boolean) => void] {
-  const value = useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => on,
-  );
-  return [
-    value,
-    (v: boolean) => {
-      on = v;
-      write(KEY, v ? 'on' : 'off');
-      // Turning sharing off also drops hands still waiting to be sent.
-      if (!v) remove(QUEUE_KEY);
-      listeners.forEach((l) => l());
-    },
-  ];
-}
+// Off until the player turns it on: nothing is stored or sent without their say. Turning it off also drops hands
+// still waiting to be sent.
+const share = storedFlag('tressette.shareHands', false, (on) => on || remove(QUEUE_KEY));
+export const useShareHands = share.use;
 
 /** A random id for this browser, so hands from one person can be grouped; it says nothing about who they are. */
 function playerId(): string {
@@ -101,7 +58,7 @@ let flushing = false;
 
 /** Sends the waiting hands, oldest first, stopping at the first that can't get through so it's tried again later. */
 async function flush() {
-  if (!HANDS_URL || !on || flushing) return;
+  if (!HANDS_URL || !share.get() || flushing) return;
   flushing = true;
   try {
     for (let hand = queued()[0]; hand; hand = queued()[0]) {
@@ -139,16 +96,17 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Records each 2-player hand from its deal to its end and, if the player opted in, shares it. Hands resumed from a saved game
+ * Records each 2-player hand from its deal to its end and, if the player turned sharing on, shares it. Hands resumed from a saved game
  * part-way through aren't shared, since their deal wasn't seen.
  */
 export function useHandSharing(state: GameState) {
   const [enabled] = useShareHands();
   const start = useRef<GameState | null>(null);
-  const game = useRef(crypto.randomUUID());
+  // Made only when a hand is sent: crypto.randomUUID exists only on https and localhost.
+  const game = useRef('');
   useEffect(() => {
     if (state.phase === 'dealing' && state.dealt === 0) {
-      if (state.handNumber === 1) game.current = crypto.randomUUID();
+      if (state.handNumber === 1) game.current = '';
       start.current = state;
       return;
     }
@@ -157,6 +115,7 @@ export function useHandSharing(state: GameState) {
       start.current = null;
       // Only 2-player hands for now: the ML bots are 2-player only.
       if (enabled && HANDS_URL && state.config.players === 2) {
+        game.current ||= crypto.randomUUID();
         send({ record: recordHand(s, state), player: playerId(), game: game.current, bot: botIdFor(state.config), app: import.meta.env.VITE_APP_VERSION || 'dev' });
       }
     }

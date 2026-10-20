@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     // Installable from the browser ("Add to Home Screen") and playable offline: a service worker keeps every file of
-    // the build, including both decks and the network bots' weights, so nothing is fetched during a game.
+    // the build, including the deck and the network bots' weights, so nothing is fetched during a game.
     VitePWA({
       // src/pwa.ts registers it and decides when an update takes over.
       registerType: 'prompt',
@@ -29,6 +29,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{html,js,css,woff2,webp,png,json}'],
+        // The Engraved deck is parked (App.tsx: CARD_ART_CHOICE), so nobody needs it on their device.
+        globIgnores: ['cards-illustrated/**'],
         // The weights are 3.5 MB, over Workbox's default 2 MB limit.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         cleanupOutdatedCaches: true,

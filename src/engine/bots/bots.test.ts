@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { Card, DECK, makeCard } from '../cards';
-import { GameState, dealNext, newGame } from '../game';
+import { GameState, collectAndDraw, dealNext, newGame } from '../game';
 import { seededRng } from '../random';
 import { seatView } from '../view';
+import { MlpWeights, checkMlp } from '../ml/mlp';
+import shipped from '../ml/weights-2p.json';
 import { solveEndgame } from './endgame';
 import { sampleDeal } from './sample';
+import { classicMove } from './classic';
+import { makeStatsBot } from './stats';
+import { makeNetSearchBot, makeNeuralBot } from './neural';
+import { Player, applyBotMove } from '.';
 
 function dealt(players: 2 | 4, seed: number): GameState {
   let s = newGame({ players, targetScore: 31, accusi: false, signals: players === 4 }, seededRng(seed));
@@ -74,5 +80,31 @@ describe('solveEndgame', () => {
     // while taking it with the 3 hands them the Asso trick and the bonus (-5).
     const replying: GameState = { ...s, turn: 0, hands: [mine, [theirs[0]]], trick: [{ seat: 1, card: theirs[1] }] };
     expect(solveEndgame(seatView(replying, 0)).id).toBe('4-coppe');
+  });
+});
+
+describe('every kind of bot', () => {
+  const weights = shipped as MlpWeights;
+
+  it('computes the shipped network exactly as PyTorch did', () => {
+    expect(weights.check).toBeDefined();
+    expect(checkMlp(weights)).toBeLessThan(1e-3);
+  });
+
+  // Few samples, so the searches stay quick; the registry's bots use the same code with more.
+  const bots: [string, Player, 2 | 4][] = [
+    ['classic', { id: 'classic', chooseMove: classicMove }, 4],
+    ['stats', { id: 'stats', chooseMove: makeStatsBot({ samples: 3, endgame: false }) }, 4],
+    ['stats with endgame', { id: 'stats-endgame', chooseMove: makeStatsBot({ samples: 3, endgame: true }) }, 2],
+    ['neural', makeNeuralBot(weights), 2],
+    ['network search', makeNetSearchBot(weights, { samples: 2, top: 3 }), 2],
+  ];
+  it.each(bots)('%s plays a whole hand legally', (_, bot, players) => {
+    const rng = seededRng(4);
+    let s = newGame({ players, targetScore: 31, accusi: true, signals: players === 4 }, rng);
+    while (s.phase === 'dealing') s = dealNext(s);
+    // applyBotMove throws on an illegal card, signal or accuso.
+    while (s.phase === 'playing' || s.phase === 'trickComplete') s = s.phase === 'trickComplete' ? collectAndDraw(s) : applyBotMove(s, bot, rng);
+    expect(s.tricks).toHaveLength(players === 2 ? 20 : 10);
   });
 });

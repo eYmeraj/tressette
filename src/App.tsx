@@ -6,30 +6,15 @@ import { CARD_ARTS, CardArt, CardArtContext, preloadCardImages } from './compone
 import { Setup } from './components/Setup';
 import { GameScreen } from './components/GameScreen';
 import { setOnSetupScreen } from './pwa';
+import { read, write } from './settings';
 
 const ART_KEY = 'tressette.cardArt';
 /** The card-style choice is parked for now: everyone plays with the classic deck and no picker is shown. */
 const CARD_ART_CHOICE = false;
 
 function savedArt(): CardArt {
-  try {
-    if (!CARD_ART_CHOICE) return 'classic';
-    const v = localStorage.getItem(ART_KEY);
-    if (v && v in CARD_ARTS) return v as CardArt;
-  } catch {
-    // Storage can be unavailable (private mode, blocked site data); fall back to the default.
-  }
-  return 'classic';
-}
-
-const ASSO_KEY = 'tressette.assoEffects';
-
-function savedAssoEffects(): boolean {
-  try {
-    return localStorage.getItem(ASSO_KEY) !== 'off';
-  } catch {
-    return true;
-  }
+  const v = CARD_ART_CHOICE && read(ART_KEY);
+  return v && v in CARD_ARTS ? (v as CardArt) : 'classic';
 }
 
 /**
@@ -44,24 +29,10 @@ const screen = {
 
 export function App() {
   const [game, setGame] = useState<GameState | null>(null);
-  const [assoEffects, setAssoEffects] = useState(savedAssoEffects);
-  const changeAssoEffects = (on: boolean) => {
-    setAssoEffects(on);
-    try {
-      localStorage.setItem(ASSO_KEY, on ? 'on' : 'off');
-    } catch {
-      // Not remembering the choice is fine.
-    }
-  };
   const [art, setArt] = useState(savedArt);
   useEffect(() => {
     preloadCardImages(art);
-    if (!CARD_ART_CHOICE) return;
-    try {
-      localStorage.setItem(ART_KEY, art);
-    } catch {
-      // Not remembering the choice is fine.
-    }
+    if (CARD_ART_CHOICE) write(ART_KEY, art);
   }, [art]);
   const onArtChange = CARD_ART_CHOICE ? setArt : undefined;
   useEffect(() => setOnSetupScreen(!game), [game]);
@@ -72,7 +43,6 @@ export function App() {
           <motion.div key="game" className="screen" {...screen}>
             <GameScreen
               start={game}
-              assoEffects={assoEffects}
               art={art}
               onArtChange={onArtChange}
               onQuit={() => {
@@ -89,8 +59,6 @@ export function App() {
               saved={loadSavedGame()}
               onContinue={setGame}
               onStart={(config) => setGame(newGame(config))}
-              assoEffects={assoEffects}
-              onAssoEffectsChange={changeAssoEffects}
             />
           </motion.div>
         )}

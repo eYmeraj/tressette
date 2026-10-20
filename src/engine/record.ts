@@ -3,7 +3,7 @@ import { GameConfig, GameState, Signal, callAccusi, collectAndDraw, dealFrom, de
 
 /**
  * One finished hand, enough to replay it exactly: the deck as it was dealt, then every card played in order.
- * Players share these (unless they turn it off) to help train the bots; see worker/ and scripts/human-hands.ts.
+ * Players who turn sharing on send these to help train the bots; see worker/ and scripts/human-hands.ts.
  */
 export interface HandRecord {
   v: 1;
@@ -40,9 +40,10 @@ const BY_ID = new Map(DECK.map((c) => [c.id, c]));
 /**
  * Plays a recorded hand through the engine and returns the finished state, or throws if anything in it is
  * impossible (a deck that isn't the 40 cards, an illegal card, an accuso the seat doesn't have, an unfinished hand).
- * Records come from browsers, so this is what decides whether one can be trusted.
+ * Records come from browsers, so this is what decides whether one can be trusted. `onPlay` sees the game just before
+ * each card is played (accusi already called), e.g. to score the decision.
  */
-export function replayHand(r: HandRecord): GameState {
+export function replayHand(r: HandRecord, onPlay?: (s: GameState, play: HandRecord['plays'][number]) => void): GameState {
   if (r.v !== 1) throw new Error(`Unknown record version ${r.v}`);
   const n = r.config.players;
   if (n !== 2 && n !== 4) throw new Error('Players must be 2 or 4');
@@ -60,11 +61,11 @@ export function replayHand(r: HandRecord): GameState {
   for (const p of r.plays) {
     if (s.phase !== 'playing') throw new Error('Cards played after the hand ended');
     if (toCall.delete(p.seat)) s = callAccusi(s, p.seat);
+    onPlay?.(s, p);
     s = playCard(s, p.seat, p.card, p.signal);
     if (s.phase === 'trickComplete') s = collectAndDraw(s);
   }
   if (toCall.size) throw new Error('An accuso was called by a seat that never played');
   if (s.phase !== 'handOver' && s.phase !== 'gameOver') throw new Error('The hand is not finished');
-  if (r.plays.length !== DECK.length) throw new Error(`Expected ${DECK.length} plays`);
   return s;
 }

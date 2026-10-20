@@ -90,11 +90,17 @@ export default {
     const raw = await readBody(req, MAX_BYTES);
     if (raw === null) return new Response('Too large', { status: 413, headers });
 
+    let meta: Record<'player' | 'game' | 'bot' | 'app', string>, record: HandRecord, points: number[];
     try {
       const body = JSON.parse(raw) as Record<string, unknown>;
-      const meta = { player: text(body.player, 64), game: text(body.game, 64), bot: text(body.bot, 32), app: text(body.app, 64) };
-      const record = canonicalRecord(body.record);
-      const points = replayHand(record).handResult!.points;
+      meta = { player: text(body.player, 64), game: text(body.game, 64), bot: text(body.bot, 32), app: text(body.app, 64) };
+      record = canonicalRecord(body.record);
+      points = replayHand(record).handResult!.points;
+    } catch (e) {
+      // A bad hand stays bad: 422 tells the app not to send it again.
+      return new Response(`Rejected: ${(e as Error).message}`, { status: 422, headers });
+    }
+    try {
       // A hand is stored once, however many times it's sent.
       await env.DB.prepare(
         `INSERT OR IGNORE INTO hands (received_at, player, game, hand_number, bot, app, players, points_0, points_1, record)
@@ -102,8 +108,9 @@ export default {
       )
         .bind(new Date().toISOString(), meta.player, meta.game, record.handNumber, meta.bot, meta.app, 2, points[0], points[1], JSON.stringify(record))
         .run();
-    } catch (e) {
-      return new Response(`Rejected: ${(e as Error).message}`, { status: 422, headers });
+    } catch {
+      // The database, not the hand: 503 makes the app keep it and try again later.
+      return new Response('Could not store the hand, try again later', { status: 503, headers });
     }
     return new Response(null, { status: 204, headers });
   },
