@@ -9,7 +9,7 @@
  * Each seed is played twice with the bots swapping sides (same shuffles, "duplicate" style), so luck of the
  * deal mostly cancels out and small differences in strength show up with fewer games.
  */
-import { Bot, applyBotMove } from '../src/engine/bots';
+import { Player, applyBotMove } from '../src/engine/bots';
 import { GameConfig, GameState, collectAndDraw, dealNext, newGame, nextHand, teamOf } from '../src/engine/game';
 import { seededRng } from '../src/engine/random';
 import { botFromSpec } from './botspec';
@@ -20,7 +20,7 @@ function arg(name: string, fallback: string): string {
 }
 
 /** Plays one full game; `bots[team]` plays every seat of that team. */
-function playGame(config: GameConfig, bots: [Bot, Bot], seed: number) {
+function playGame(config: GameConfig, bots: [Player, Player], seed: number) {
   const rng = seededRng(seed);
   let s: GameState = newGame(config, rng);
   const handPoints = [0, 0];

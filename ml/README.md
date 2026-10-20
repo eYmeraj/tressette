@@ -3,7 +3,7 @@
 A neural network learns to play from a search bot, then makes that search stronger, which in turn teaches the
 next network ("expert iteration", the idea behind AlphaZero, adapted to hidden cards).
 
-In the game: **Expert** (20yo Endi) is the network alone (instant); **Master** (30yo Endi) is the search guided by
+In the game: **Expert** (Uni Endi) is the network alone (instant); **Master** (Habibi Endi) is the search guided by
 the network. Below and in the code they are `neural` and `expert`.
 
 ## Results

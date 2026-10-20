@@ -1,7 +1,6 @@
 import { Card, SUITS, strength, thirds } from '../cards';
+import { LAST_TRICK_BONUS } from '../game';
 import { SeatView, legalPlays, unseenCards } from '../view';
-
-const LAST_TRICK_BONUS = 3; // thirds
 
 /**
  * Perfect play once the 2-player stock is empty: every card the opponent holds is then known (the rest of the

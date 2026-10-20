@@ -1,6 +1,7 @@
 import { CSSProperties, createContext, useContext } from 'react';
 import { motion, Transition } from 'framer-motion';
 import { Card, DECK, cardName, isAssoDiCoppe } from '../engine/cards';
+import { storedFlag } from '../settings';
 
 /** Spring used for every card flight (deal, play, draw) so they all feel alike. */
 export const CARD_SPRING: Transition = { type: 'spring', stiffness: 260, damping: 30, mass: 0.9 };
@@ -19,6 +20,9 @@ export const CardArtContext = createContext<CardArt>('classic');
 
 /** Whether the Asso di Coppe shows its extra flair; only the 2-player game turns it on. */
 export const AssoFlairContext = createContext(false);
+
+/** The player's choice to show the Asso di Coppe's flair and moments (2-player games), on unless turned off. */
+export const useAssoEffects = storedFlag('tressette.assoEffects', true).use;
 
 function cardImage(card: Card, art: CardArt): string {
   return `${import.meta.env.BASE_URL}${CARD_ARTS[art].dir}/${card.id}.webp`;

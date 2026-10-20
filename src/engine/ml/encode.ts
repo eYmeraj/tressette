@@ -1,5 +1,5 @@
 import { DECK, SUITS, cardIndex, strength, thirds } from '../cards';
-import { HAND_SIZE, Signal, teamOf, winningPlayIndex } from '../game';
+import { HAND_SIZE, LAST_TRICK_BONUS, Signal, teamOf, winningPlayIndex } from '../game';
 import { SeatView, legalPlays, unseenCards } from '../view';
 import { knownCards, voids } from '../bots/sample';
 
@@ -7,7 +7,7 @@ import { knownCards, voids } from '../bots/sample';
 export const ACTIONS = DECK.length;
 
 const SIGNALS: Signal[] = ['busso', 'volo', 'striscio'];
-const TOTAL_THIRDS = 35; // every card's thirds plus the last-trick bonus
+const TOTAL_THIRDS = DECK.reduce((sum, c) => sum + thirds(c), LAST_TRICK_BONUS); // 35
 const RANKS_PER_SUIT = DECK.length / SUITS.length;
 
 /**

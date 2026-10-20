@@ -1,4 +1,5 @@
 import { GameState } from './engine/game';
+import { read, remove, write } from './settings';
 
 const KEY = 'tressette.savedGame';
 /** Bump when GameState changes shape; saves from other versions are dropped instead of loaded. */
@@ -21,28 +22,14 @@ export function serializeSave(state: GameState): string {
   return JSON.stringify({ version: VERSION, state });
 }
 
-// Storage can be unavailable (private mode, blocked site data); then games just aren't remembered.
-
 export function loadSavedGame(): GameState | null {
-  try {
-    return parseSave(localStorage.getItem(KEY));
-  } catch {
-    return null;
-  }
+  return parseSave(read(KEY));
 }
 
 export function saveGame(state: GameState) {
-  try {
-    localStorage.setItem(KEY, serializeSave(state));
-  } catch {
-    // Not remembering the game is fine.
-  }
+  write(KEY, serializeSave(state));
 }
 
 export function clearSavedGame() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    // Nothing to clear.
-  }
+  remove(KEY);
 }

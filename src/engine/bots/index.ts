@@ -4,23 +4,25 @@ import { classicMove } from './classic';
 import { makeStatsBot } from './stats';
 import { makeNetSearchBot, makeNeuralBot } from './neural';
 import type { MlpWeights } from '../ml/mlp';
-// Fetched only when a network bot first plays (see prepareBot), so the page doesn't download megabytes of weights
-// for players who never choose one.
+// Loaded only when a network bot first plays (see prepareBot), so the page doesn't parse megabytes of weights for
+// players who never choose one. (The service worker still downloads the file for offline play: vite.config.ts.)
 import weightsUrl from '../ml/weights-2p.json?url';
-import { Bot, BotMove, applyMove } from './types';
+import { Bot, BotMove, Player, applyMove } from './types';
 
-export type { Bot, BotMove } from './types';
+export type { Bot, BotMove, Player } from './types';
 export { applyMove } from './types';
 
 const fetched = new Map<string, Promise<MlpWeights>>();
 
-/** Downloads weights once per URL, however many bots use them. */
+/** Downloads weights once per URL, however many bots use them. A failed download is forgotten, so the next call retries. */
 function fetchWeights(url: string): Promise<MlpWeights> {
   if (!fetched.has(url)) {
-    fetched.set(url, fetch(url).then((res) => {
+    const weights: Promise<MlpWeights> = fetch(url).then((res) => {
       if (!res.ok) throw new Error(`Couldn't load ${url}: ${res.status}`);
       return res.json();
-    }));
+    });
+    weights.catch(() => fetched.delete(url));
+    fetched.set(url, weights);
   }
   return fetched.get(url)!;
 }
@@ -28,10 +30,17 @@ function fetchWeights(url: string): Promise<MlpWeights> {
 const loaders = new Map<string, () => Promise<void>>();
 
 /** A bot whose real implementation is built asynchronously (downloading weights) by `prepareBot`. */
-function lazyBot(meta: Omit<Bot, 'chooseMove'>, load: () => Promise<Bot>): Bot {
-  let impl: Bot | null = null;
+function lazyBot(meta: Omit<Bot, 'chooseMove'>, load: () => Promise<Player>): Bot {
+  let impl: Player | null = null;
   let loading: Promise<void> | null = null;
-  loaders.set(meta.id, () => (loading ??= load().then((b) => void (impl = b))));
+  loaders.set(meta.id, () =>
+    (loading ??= load().then(
+      (b) => void (impl = b),
+      (e) => {
+        loading = null; // try again next time
+        throw e;
+      },
+    )));
   return {
     ...meta,
     chooseMove(v, rng): BotMove {
@@ -45,39 +54,33 @@ function lazyBot(meta: Omit<Bot, 'chooseMove'>, load: () => Promise<Bot>): Bot {
 export const BOTS = {
   classic: {
     id: 'classic',
-    name: 'Classic',
     label: 'Easy',
     endisLifeStage: 'Baby Casino',
-    difficulty: 'Easy',
     description: 'Plays by simple rules of thumb.',
     chooseMove: classicMove,
   },
   'stats-medium': {
     id: 'stats-medium',
-    name: 'Stats',
     label: 'Medium',
     endisLifeStage: 'Cat Costume',
-    difficulty: 'Medium',
     description: 'Imagines a few dozen ways the hidden cards could lie and plays what works best.',
     chooseMove: makeStatsBot({ samples: 24, endgame: false }),
   },
   'stats-hard': {
     id: 'stats-hard',
-    name: 'Stats',
     label: 'Hard',
     endisLifeStage: 'Chubby',
-    difficulty: 'Hard',
     description: 'Weighs hundreds of possible deals, and plays the 2-player endgame perfectly.',
     chooseMove: makeStatsBot({ samples: 120, endgame: true }),
   },
   // Trained by self-play (see ml/README.md); 2-player only, and they need prepareBot before their first move.
   neural: lazyBot(
-    { id: 'neural', name: 'Neural', label: 'Expert', endisLifeStage: 'Uni', difficulty: 'Expert', players: [2],
+    { id: 'neural', label: 'Expert', endisLifeStage: 'Uni', players: [2],
       description: 'Learned by playing itself for thousands of hands: plays on instinct, instantly. 2 players only.' },
     async () => makeNeuralBot(await fetchWeights(weightsUrl), 'neural'),
   ),
   expert: lazyBot(
-    { id: 'expert', name: 'Expert', label: 'Master', endisLifeStage: 'Habibi', difficulty: 'Master', players: [2],
+    { id: 'expert', label: 'Master', endisLifeStage: 'Habibi', players: [2],
       description: 'Plays on instinct too, then imagines how the hidden cards could lie and checks its choice. 2 players only.' },
     // About 0.3 s a move on a desktop, at most ~0.8 s on slow devices.
     async () => makeNetSearchBot(await fetchWeights(weightsUrl), { samples: 40, top: 3, budget: { ms: 800, minSamples: 12 } }, 'expert'),
@@ -109,6 +112,6 @@ export function botFor(config: GameConfig): Bot {
 }
 
 /** Lets `bot` take the current seat's turn. */
-export function applyBotMove(s: GameState, bot: Bot, rng: Rng = Math.random): GameState {
+export function applyBotMove(s: GameState, bot: Player, rng: Rng = Math.random): GameState {
   return applyMove(s, s.turn, bot.chooseMove(seatView(s, s.turn), rng));
 }

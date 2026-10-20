@@ -24,7 +24,7 @@ for (const run of process.argv.slice(2).filter((a) => a !== '--')) {
     derive(row, players);
   }
   writeFileSync(join(out, 'x.f32'), new Uint8Array(y.buffer));
-  for (const f of ['mask.u8', 'q.f32', 'z.f32']) copyFileSync(join(run, f), join(out, f));
+  for (const f of ['mask.u8', 'q.f32']) copyFileSync(join(run, f), join(out, f));
   writeFileSync(join(out, 'meta.json'), JSON.stringify({ ...meta, features: to, derivedFrom: run }, null, 2));
   console.log(`${run} -> ${out}: ${meta.rows} rows, ${from} -> ${to} features`);
 }

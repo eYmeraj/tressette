@@ -215,7 +215,8 @@ button.cookie {
   gap: 0.55rem 0.9rem; margin: 0 auto 1.25rem;
 }
 .option-row { display: contents; }
-.opponent-name { justify-self: start; margin-top: -0.3rem; font-size: 0.8rem; font-style: italic; opacity: 0.8; }
+/* Inter is loaded upright only, so the italic is slanted by the browser; the padding keeps WebKit from clipping the last letter. */
+.opponent-name { justify-self: start; margin-top: -0.3rem; padding-inline: 0.15em; font-size: 0.8rem; font-style: italic; opacity: 0.8; }
 .option-label { color: var(--gold); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; text-align: right; white-space: nowrap; }
 /* Joined button group: one outline, the chosen part filled. */
 .segmented { display: inline-flex; justify-self: start; border: 1px solid rgba(251, 246, 232, 0.4); border-radius: 999px; overflow: hidden; }
@@ -312,6 +313,13 @@ button.cookie {
 .draw-reveal-bottom { translate: 0 0.5rem; }
 .draw-reveal span { font-size: 0.75rem; background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; white-space: nowrap; }
 .played.winner .card { box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
+.accusi-called { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+/* Allowed to wrap: on narrow phones the side seats are only a card wide. */
+.accusi-called { max-width: 7rem; }
+.accusi-called span {
+  background: var(--gold); color: var(--ink); font-size: 0.7rem; font-weight: 700; text-align: center;
+  padding: 0.1em 0.6em; border-radius: 0.7em;
+}
 .signal-badge {
   position: absolute; left: 50%; bottom: -0.8em; translate: -50% 0;
   background: var(--gold); color: var(--ink); font-size: 0.75rem; font-weight: 700;
@@ -423,6 +431,10 @@ button.icon-button { display: grid; place-items: center; padding: 0.45rem; borde
   .score-row { gap: 0.4rem; }
   .score-row strong { font-size: 1rem; }
   .score-meta { margin-top: 0; }
+  /* The 4-player team names are long: a smaller hand and no "Hand 1 · to 31" line keep the score inside the bar. */
+  .players-4 .scoreboard { font-size: 0.85rem; line-height: 1.1rem; }
+  .players-4 .score-row strong { font-size: 0.85rem; }
+  .players-4 .score-meta { display: none; }
   .last-hand span { display: none; }
   .card.mini { width: 24px; }
   /* Bigger cards in hand on small screens: they are what the player touches. */

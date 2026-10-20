@@ -1,12 +1,10 @@
 import { Card, cardIndex, thirds } from '../cards';
-import { GameState, Rng, collectAndDraw, teamOf } from '../game';
+import { GameState, Rng, collectAndDraw, handMargin, teamOf } from '../game';
 import { SeatView, accusiFor, legalPlays, seatView } from '../view';
 import { classicMove, classicSignal } from './classic';
 import { endgameScores } from './endgame';
 import { sampleDeal } from './sample';
 import { BotMove, applyMove } from './types';
-
-const LAST_TRICK_BONUS = 3; // thirds
 
 export interface StatsOptions {
   /** How many possible deals of the hidden cards to try each move. */
@@ -33,13 +31,6 @@ function playOutHand(s: GameState, rollout: (v: SeatView) => BotMove): GameState
     s = s.phase === 'trickComplete' ? collectAndDraw(s) : applyMove(s, s.turn, rollout(seatView(s, s.turn)));
   }
   return s;
-}
-
-/** Card thirds (with the last-trick bonus) our team ends the hand with, minus theirs. */
-function margin(s: GameState, team: number): number {
-  const r = s.handResult!;
-  const total = (t: number) => r.cardThirds[t] + (r.lastTrickTeam === t ? LAST_TRICK_BONUS : 0);
-  return total(team) - total(1 - team);
 }
 
 /** Card thirds our team has already taken this hand, minus theirs. */
@@ -84,7 +75,7 @@ export function statsScores(
     legal.forEach((c, k) => {
       const signal = leading ? classicSignal(v, c) : undefined;
       const after = applyMove(world, v.seat, { cardId: c.id, signal, callAccusi });
-      totals[k] += margin(playOutHand(after, rollout), team);
+      totals[k] += handMargin(playOutHand(after, rollout).handResult!, team);
     });
   }
   return legal.map((card, k) => ({ card, score: totals[k] / done }));

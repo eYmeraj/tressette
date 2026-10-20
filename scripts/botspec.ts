@@ -8,7 +8,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
-import { BOTS, Bot, BotId } from '../src/engine/bots';
+import { BOTS, BotId, Player } from '../src/engine/bots';
 import { makeNetPolicy, makeNetSearchBot, makeNeuralBot } from '../src/engine/bots/neural';
 import { classicMove } from '../src/engine/bots/classic';
 import { MlpWeights, checkMlp } from '../src/engine/ml/mlp';
@@ -25,7 +25,7 @@ export function loadWeights(path: string): MlpWeights {
   return weights;
 }
 
-export function botFromSpec(spec: string): Bot {
+export function botFromSpec(spec: string): Player {
   const [kind, rest] = spec.split(/:(.*)/s);
   if (kind === 'neural' && rest) return makeNeuralBot(loadWeights(rest), `neural:${basename(rest)}`);
   if (kind === 'search' && rest) {

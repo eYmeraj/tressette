@@ -4,7 +4,13 @@ import type { BotRequest, BotReply } from './botClient';
 
 self.onmessage = async (e: MessageEvent<BotRequest>) => {
   const { id, botId, view } = e.data;
-  await prepareBot(botId);
-  const reply: BotReply = { id, move: BOTS[botId].chooseMove(view, Math.random) };
+  let reply: BotReply;
+  try {
+    await prepareBot(botId);
+    reply = { id, move: BOTS[botId].chooseMove(view, Math.random) };
+  } catch (err) {
+    // Always answer: a request left unanswered would freeze the table.
+    reply = { id, error: String(err) };
+  }
   (self as unknown as { postMessage(message: BotReply): void }).postMessage(reply);
 };

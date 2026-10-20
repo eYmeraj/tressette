@@ -1,7 +1,8 @@
 import { Card, DECK, cardIndex } from './cards';
 import { findAccusi, legalCards } from './rules';
 import { Accuso } from './rules';
-import { AccusiCall, CompletedTrick, GameConfig, GameEvent, GameState, Phase, Play } from './game';
+// Types only: game.ts uses this file's rules, so a value import would be circular.
+import type { AccusiCall, CompletedTrick, GameConfig, GameEvent, GameState, Phase, Play } from './game';
 
 /**
  * Everything one seat is allowed to know: its own hand, how many cards the others hold, and what is public

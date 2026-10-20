@@ -1,5 +1,6 @@
 import { Card, Suit, newDeck, shuffle, thirds } from './cards';
-import { Accuso, findAccusi, legalCards, trickWinnerIndex } from './rules';
+import { Accuso, trickWinnerIndex } from './rules';
+import { accusiFor, legalPlays, seatView } from './view';
 import type { BotId } from './bots';
 
 export type Signal = 'busso' | 'volo' | 'striscio';
@@ -76,7 +77,7 @@ export interface GameState {
 export type Rng = () => number;
 
 export const HAND_SIZE = 10;
-const LAST_TRICK_BONUS = 3; // thirds
+export const LAST_TRICK_BONUS = 3; // thirds
 
 /** Seats go counterclockwise. With 4 players, partners sit opposite (seats 0+2 and 1+3). */
 export function teamOf(config: GameConfig, seat: number): number {
@@ -147,11 +148,9 @@ export function deckCards(s: GameState): Card[] {
   return [...undealt, ...s.stock];
 }
 
-/** Accusi must be called before the player's first card of the hand. */
+/** Accusi must be called before the player's first card of the hand (the same rule the bots see: view.ts). */
 export function availableAccusi(s: GameState, seat: number): Accuso[] {
-  if (!s.config.accusi || s.phase !== 'playing' || s.hasPlayed[seat]) return [];
-  if (s.accusiCalls.some((d) => d.seat === seat)) return [];
-  return findAccusi(s.hands[seat]);
+  return accusiFor(seatView(s, seat));
 }
 
 export function callAccusi(s: GameState, seat: number): GameState {
@@ -165,8 +164,7 @@ export function callAccusi(s: GameState, seat: number): GameState {
 }
 
 export function legalMoves(s: GameState, seat: number): Card[] {
-  if (s.phase !== 'playing' || s.turn !== seat) return [];
-  return legalCards(s.hands[seat], s.trick[0]?.card.suit ?? null);
+  return legalPlays(seatView(s, seat));
 }
 
 export function canSignal(s: Pick<GameState, 'config' | 'phase' | 'turn' | 'trick'>, seat: number): boolean {
@@ -248,6 +246,12 @@ export function finishDraw(s: GameState): GameState {
 export function collectAndDraw(s: GameState): GameState {
   const next = collectTrick(s);
   return next.phase === 'drawing' ? finishDraw(next) : next;
+}
+
+/** Card thirds (with the last-trick bonus) `team` took in the hand, minus the other team's. */
+export function handMargin(r: HandResult, team: number): number {
+  const total = (t: number) => r.cardThirds[t] + (r.lastTrickTeam === t ? LAST_TRICK_BONUS : 0);
+  return total(team) - total(1 - team);
 }
 
 function finishHand(s: GameState): GameState {
