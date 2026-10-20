@@ -47,7 +47,7 @@ export const BOTS = {
     id: 'classic',
     name: 'Classic',
     label: 'Easy',
-    endisLifeStage: 'Toddler',
+    endisLifeStage: 'Baby Casino',
     difficulty: 'Easy',
     description: 'Plays by simple rules of thumb.',
     chooseMove: classicMove,

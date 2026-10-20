@@ -7,7 +7,7 @@ stage. This page explains how each one decides what to play, what it knows, and 
 
 | Difficulty | Opponent | How it plays | Games | Thinking time |
 |---|---|---|---|---|
-| Easy | Toddler Endi | Fixed rules of thumb | 2 and 4 players | Instant |
+| Easy | Baby Casino Endi | Fixed rules of thumb | 2 and 4 players | Instant |
 | Medium | Cat Costume Endi | Imagines 24 ways the hidden cards could lie and plays what works best on average | 2 and 4 players | A blink |
 | Hard | Chubby Endi | The same with 120 imagined deals, and perfect play once the deck runs out | 2 and 4 players | ~0.1 s |
 | Expert | Uni Endi | A neural network that learned by playing itself | 2 players | Instant |
@@ -30,7 +30,7 @@ points), with a 95% confidence interval. 2-player games to 31, no accusi.
 
 | Bot | Opponent | Games | Wins | Margin per hand |
 |---|---|---|---|---|
-| Expert (Uni Endi) | Easy (Toddler Endi) | 2000 | 99.9% | +3.54 ± 0.04 |
+| Expert (Uni Endi) | Easy (Baby Casino Endi) | 2000 | 99.9% | +3.54 ± 0.04 |
 | Expert | Medium (Cat Costume Endi) | 800 | 99.8% | +3.42 ± 0.07 |
 | Expert | Hard (Chubby Endi) | 400 | 86.2% | +1.29 ± 0.11 |
 | Master (Habibi Endi) | Hard (Chubby Endi) | 400 | 89.2% | +1.44 ± 0.10 |
@@ -38,7 +38,7 @@ points), with a 95% confidence interval. 2-player games to 31, no accusi.
 Even small margins add up: +1.4 points a hand turns a game to 31 into a clear win most of the time. Every
 measurement is recorded in `ml/results.jsonl`.
 
-## Easy: Toddler Endi
+## Easy: Baby Casino Endi
 
 Plays by hand-written rules (`src/engine/bots/classic.ts`). It tracks which cards are still out there, so it knows
 when one of its cards is the highest left in its suit (a "master" card).
@@ -60,7 +60,7 @@ where the hidden cards are, so it imagines it:
    played are out, a player who didn't follow suit has no cards of that suit, cards drawn face up or shown in an
    accuso are where they were seen, and every hand has the right number of cards (`src/engine/bots/sample.ts`).
 2. **Try every card it could play** in that imagined deal, and play the rest of the hand out, with every player
-   following Toddler Endi's rules.
+   following Baby Casino Endi's rules.
 3. **Repeat** for many imagined deals, and play the card with the best average result (points its team takes minus
    points the other side takes, including the last-trick point).
 
@@ -69,7 +69,7 @@ deck is empty, every remaining card is known (whatever isn't in its hand is in y
 hand exactly by trying every line of play (`src/engine/bots/endgame.ts`).
 
 Their weakness: the imagined deals are played out by the simple rule-based bot, so their estimates of what a card
-is worth are only as good as Toddler Endi's play.
+is worth are only as good as Baby Casino Endi's play.
 
 ## Expert: Uni Endi (neural network)
 
@@ -113,7 +113,7 @@ adapted to hidden cards):
 
 1. **Copying Hard.** Hard played thousands of hands against itself; at every decision it recorded its score for
    every card. A first network learned to predict those scores.
-2. **Teaching the search.** That network then replaced Toddler Endi's rules in Hard's imagined play-outs. Better
+2. **Teaching the search.** That network then replaced Baby Casino Endi's rules in Hard's imagined play-outs. Better
    play-outs give better estimates, so this search was stronger than Hard.
 3. **Learning from the stronger search.** The new search played 4,000 hands against itself, a new network learned
    from its scores, and the cycle repeated. Each new network had to beat the previous best head to head before
@@ -131,7 +131,7 @@ Training details (`ml/train.py`, PyTorch):
 - AdamW optimiser, learning rate 0.001 with cosine decay, batches of 512, 40 epochs; the version that loses the
   least against the teacher on held-out games is kept.
 
-Signals and accusi (only in 4-player, which Expert doesn't play) would follow Toddler Endi's rules.
+Signals and accusi (only in 4-player, which Expert doesn't play) would follow Baby Casino Endi's rules.
 
 ## Master: Habibi Endi (neural network + search)
 
