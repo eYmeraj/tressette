@@ -313,11 +313,16 @@ button.cookie {
 .draw-reveal-bottom { translate: 0 0.5rem; }
 .draw-reveal span { font-size: 0.75rem; background: rgba(0, 0, 0, 0.45); border-radius: 999px; padding: 0.05em 0.6em; white-space: nowrap; }
 .played.winner .card { box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
-.accusi-called { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
-/* Allowed to wrap: on narrow phones the side seats are only a card wide. */
-.accusi-called { max-width: 7rem; }
+.nameplate-wrap { position: relative; }
+/* Laid over the seat's face-down cards rather than in the flow: growing the seat mid-hand would push the 4-player
+   table past a small phone's screen. Allowed to wrap: on narrow phones the side seats are only a card wide. */
+.accusi-called {
+  position: absolute; top: calc(100% + 0.3rem); left: 50%; translate: -50% 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem; width: max-content; max-width: 6.5rem;
+}
 .accusi-called span {
-  background: var(--gold); color: var(--ink); font-size: 0.7rem; font-weight: 700; text-align: center;
+  background: var(--gold); color: var(--ink); font-size: 0.7rem; font-weight: 700; text-align: center; text-wrap: balance;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   padding: 0.1em 0.6em; border-radius: 0.7em;
 }
 .signal-badge {

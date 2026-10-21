@@ -319,19 +319,21 @@ function Opponent({
   const called = state.accusiCalls.find((c) => c.seat === seat)?.accusi ?? [];
   return (
     <div className={`seat seat-${position}`}>
-      <div className={`nameplate ${active ? 'active' : ''} team-${teamOf(state.config, seat)}`}>
-        {name}
-        {partner && <small> (partner)</small>}
-      </div>
-      {called.length > 0 && (
-        <div className="accusi-called" aria-label={`${name} called`}>
-          {called.map((a) => (
-            <span key={a.label}>
-              {a.label} +{a.points}
-            </span>
-          ))}
+      <div className="nameplate-wrap">
+        <div className={`nameplate ${active ? 'active' : ''} team-${teamOf(state.config, seat)}`}>
+          {name}
+          {partner && <small> (partner)</small>}
         </div>
-      )}
+        {called.length > 0 && (
+          <div className="accusi-called" aria-label={`${name} called`}>
+            {called.map((a) => (
+              <span key={a.label}>
+                {a.label}&nbsp;+{a.points}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
       <div className={`backs ${position === 'left' || position === 'right' ? 'vertical' : ''}`}>
         {visibleHand(state, seat).map((c) => (
           <CardView
